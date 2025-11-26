@@ -10,7 +10,7 @@ export const NetworkStatus: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <FontAwesome6 name="wifi" size={16} color="white" />
+      <FontAwesome6 name="wifi" size={16} color="white" iconStyle='solid'/>
       <Text style={styles.text}>No internet connection</Text>
     </View>
   );

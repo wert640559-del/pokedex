@@ -1,0 +1,1518 @@
+
+
+--- FILE: ./types/pokemon.ts ---
+
+export interface Pokemon {
+  id: number;
+  name: string;
+  url: string;
+  sprites: {
+    front_default: string;
+    other: {
+      'official-artwork': {
+        front_default: string;
+      };
+    };
+  };
+  types: {
+    slot: number;
+    type: {
+      name: string;
+      url: string;
+    };
+  }[];
+  stats: {
+    base_stat: number;
+    stat: {
+      name: string;
+    };
+  }[];
+  height: number;
+  weight: number;
+  abilities: {
+    ability: {
+      name: string;
+    };
+  }[];
+}
+
+export interface PokemonListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Pokemon[];
+}
+
+--- FILE: ./services/api.ts ---
+
+import axios from 'axios';
+import { Pokemon, PokemonListResponse } from '../types/pokemon';
+
+const BASE_URL = 'https://pokeapi.co/api/v2';
+
+export const api = axios.create({
+  baseURL: BASE_URL,
+  timeout: 10000,
+});
+
+export const PokemonAPI = {
+  getPokemonList: async (offset = 0, limit = 20): Promise<PokemonListResponse> => {
+    const response = await api.get(`/pokemon?limit=${limit}&offset=${offset}`);
+    return response.data;
+  },
+
+  getPokemonDetail: async (idOrName: string | number): Promise<Pokemon> => {
+    const response = await api.get(`/pokemon/${idOrName}`);
+    return response.data;
+  },
+
+  getPokemonByType: async (type: string) => {
+    const response = await api.get(`/type/${type}`);
+    return response.data;
+  },
+};
+
+--- FILE: ./services/storage.ts ---
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const FAVORITES_KEY = 'favorite_pokemon';
+
+export const StorageService = {
+  getFavorites: async (): Promise<number[]> => {
+    try {
+      const favorites = await AsyncStorage.getItem(FAVORITES_KEY);
+      return favorites ? JSON.parse(favorites) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  addFavorite: async (pokemonId: number): Promise<boolean> => {
+    try {
+      const favorites = await StorageService.getFavorites();
+      if (!favorites.includes(pokemonId)) {
+        favorites.push(pokemonId);
+        await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  removeFavorite: async (pokemonId: number): Promise<boolean> => {
+    try {
+      const favorites = await StorageService.getFavorites();
+      const updatedFavorites = favorites.filter(id => id !== pokemonId);
+      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites));
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  isFavorite: async (pokemonId: number): Promise<boolean> => {
+    const favorites = await StorageService.getFavorites();
+    return favorites.includes(pokemonId);
+  },
+};
+
+--- FILE: ./hooks/usePokemon.ts ---
+
+import { useState, useEffect } from 'react';
+import { Pokemon, PokemonListResponse } from '../types/pokemon';
+import { PokemonAPI } from '../services/api';
+
+export const usePokemon = () => {
+  const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+
+  const loadPokemon = async (loadOffset = 0) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data: PokemonListResponse = await PokemonAPI.getPokemonList(loadOffset);
+      
+      // Get detailed information for each Pokemon
+      const detailedPokemon = await Promise.all(
+        data.results.map(async (pokemon, index) => {
+          try {
+            return await PokemonAPI.getPokemonDetail(loadOffset + index + 1);
+          } catch {
+            // Fallback to basic info if detail fetch fails
+            return { ...pokemon, id: loadOffset + index + 1 };
+          }
+        })
+      );
+
+      if (loadOffset === 0) {
+        setPokemonList(detailedPokemon);
+      } else {
+        setPokemonList(prev => [...prev, ...detailedPokemon]);
+      }
+
+      setHasMore(!!data.next);
+      setOffset(loadOffset + 20);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch Pokémon');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refresh = () => {
+    setOffset(0);
+    loadPokemon(0);
+  };
+
+  useEffect(() => {
+    loadPokemon();
+  }, []);
+
+  return {
+    pokemonList,
+    loading,
+    error,
+    hasMore,
+    loadMore: () => loadPokemon(offset),
+    refresh,
+  };
+};
+
+--- FILE: ./hooks/useNetwork.ts ---
+
+import { useState, useEffect } from 'react';
+import { addEventListener, NetInfoState } from '@react-native-community/netinfo';
+
+export const useNetwork = () => {
+  const [isConnected, setIsConnected] = useState<boolean | null>(true);
+
+  useEffect(() => {
+    const unsubscribe = addEventListener((state: NetInfoState) => {
+      setIsConnected(state.isConnected);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return { isConnected };
+};
+
+--- FILE: ./hooks/usePokemonByType.ts ---
+
+import { useState, useEffect } from 'react';
+import { Pokemon } from '../types/pokemon';
+import { PokemonAPI } from '../services/api';
+
+export const usePokemonByType = (type: string | null) => {
+  const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadPokemon = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (type) {
+        // Load by type - FIXED
+        const typeData = await PokemonAPI.getPokemonByType(type);
+        console.log('Type data:', typeData); // Debug log
+        
+        const detailedPokemon = await Promise.all(
+          typeData.pokemon.slice(0, 20).map(async (p: any) => {
+            try {
+              // Extract pokemon name dari nested object
+              const pokemonName = p.pokemon.name;
+              const pokemonDetail = await PokemonAPI.getPokemonDetail(pokemonName);
+              return pokemonDetail;
+            } catch (error) {
+              console.error(`Error loading ${p.pokemon.name}:`, error);
+              // Return basic structure as fallback
+              return {
+                id: 0,
+                name: p.pokemon.name,
+                url: p.pokemon.url,
+                sprites: { front_default: '', other: { 'official-artwork': { front_default: '' } } },
+                types: [],
+                stats: [],
+                height: 0,
+                weight: 0,
+                abilities: []
+              };
+            }
+          })
+        );
+        setPokemonList(detailedPokemon.filter(p => p.id !== 0)); // Filter out failed requests
+      } else {
+        // Load all - FIXED
+        const data = await PokemonAPI.getPokemonList(0, 20);
+        const detailedPokemon = await Promise.all(
+          data.results.map(async (pokemon, index) => {
+            try {
+              return await PokemonAPI.getPokemonDetail(index + 1);
+            } catch (error) {
+              console.error(`Error loading Pokemon ${index + 1}:`, error);
+              // Return proper fallback structure
+              return {
+                id: index + 1,
+                name: pokemon.name,
+                url: pokemon.url,
+                sprites: { front_default: '', other: { 'official-artwork': { front_default: '' } } },
+                types: [],
+                stats: [],
+                height: 0,
+                weight: 0,
+                abilities: []
+              };
+            }
+          })
+        );
+        setPokemonList(detailedPokemon.filter(p => p.id !== 0));
+      }
+    } catch (err) {
+      console.error('Error in usePokemonByType:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch Pokémon');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPokemon();
+  }, [type]);
+
+  return {
+    pokemonList,
+    loading,
+    error,
+    refresh: loadPokemon,
+  };
+};
+
+--- FILE: ./components/PokemonCard.tsx ---
+
+import React from 'react';
+import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
+import { Pokemon } from '../types/pokemon';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+
+interface PokemonCardProps {
+  pokemon: Pokemon;
+  onPress: (pokemon: Pokemon) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (pokemonId: number) => void;
+}
+
+export const PokemonCard: React.FC<PokemonCardProps> = ({ 
+  pokemon, 
+  onPress, 
+  isFavorite = false, 
+  onToggleFavorite 
+}) => {
+  const imageUrl = pokemon.sprites?.other?.['official-artwork']?.front_default 
+    || pokemon.sprites?.front_default 
+    || 'https://via.placeholder.com/100x100/ccc/fff?text=Pokemon';
+
+  const handleFavoritePress = () => {
+    onToggleFavorite?.(pokemon.id);
+  };
+
+  return (
+    <TouchableOpacity style={styles.card} onPress={() => onPress(pokemon)}>
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: imageUrl }} style={styles.image} />
+        {onToggleFavorite && (
+          <TouchableOpacity style={styles.favoriteButton} onPress={handleFavoritePress}>
+            <FontAwesome6 
+              name={isFavorite ? "heart" : "heart-circle-plus"} 
+              size={20} 
+              color={isFavorite ? "#FF6B6B" : "#666"} 
+              iconStyle='solid'
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+      
+      <View style={styles.info}>
+        <Text style={styles.name}>
+          {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
+        </Text>
+        <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
+        
+        <View style={styles.types}>
+          {pokemon.types?.map((typeInfo, index) => (
+            <View key={index} style={[styles.type, { backgroundColor: getTypeColor(typeInfo.type.name) }]}>
+              <Text style={styles.typeText}>
+                {typeInfo.type.name.toUpperCase()}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+const getTypeColor = (type: string): string => {
+  const colors: { [key: string]: string } = {
+    normal: '#A8A878',
+    fire: '#F08030',
+    water: '#6890F0',
+    electric: '#F8D030',
+    grass: '#78C850',
+    ice: '#98D8D8',
+    fighting: '#C03028',
+    poison: '#A040A0',
+    ground: '#E0C068',
+    flying: '#A890F0',
+    psychic: '#F85888',
+    bug: '#A8B820',
+    rock: '#B8A038',
+    ghost: '#705898',
+    dragon: '#7038F8',
+    dark: '#705848',
+    steel: '#B8B8D0',
+    fairy: '#EE99AC',
+  };
+  return colors[type] || '#68A090';
+};
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 12,
+    margin: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  imageContainer: {
+    position: 'relative',
+  },
+  image: {
+    width: 80,
+    height: 80,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  info: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  id: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  types: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  type: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 6,
+    marginBottom: 4,
+  },
+  typeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+});
+
+--- FILE: ./components/LoadingIndicator.tsx ---
+
+import React from 'react';
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+
+interface LoadingIndicatorProps {
+  size?: 'small' | 'large';
+  text?: string;
+}
+
+export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ 
+  size = 'large', 
+  text = 'Loading Pokémon...' 
+}) => (
+  <View style={styles.container}>
+    <ActivityIndicator size={size} color="#FF6B6B" />
+    <Text style={styles.text}>{text}</Text>
+  </View>
+);
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  text: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+});
+
+--- FILE: ./components/ErrorMessage.tsx ---
+
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+
+interface ErrorMessageProps {
+  message: string;
+  onRetry?: () => void;
+}
+
+export const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, onRetry }) => (
+  <View style={styles.container}>
+    <FontAwesome6 name="triangle-exclamation" size={48} color="#FF6B6B" iconStyle='solid'/>
+    <Text style={styles.message}>{message}</Text>
+    {onRetry && (
+      <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+        <Text style={styles.retryText}>Try Again</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+);
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  message: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginVertical: 16,
+  },
+  retryButton: {
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
+
+--- FILE: ./components/NetworkStatus.tsx ---
+
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useNetwork } from '../hooks/useNetwork';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+
+export const NetworkStatus: React.FC = () => {
+  const { isConnected } = useNetwork();
+
+  if (isConnected) return null;
+
+  return (
+    <View style={styles.container}>
+      <FontAwesome6 name="wifi" size={16} color="white" iconStyle='solid'/>
+      <Text style={styles.text}>No internet connection</Text>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#FF6B6B',
+    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    color: 'white',
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+});
+
+--- FILE: ./screens/PokemonListScreen.tsx ---
+
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  FlatList, 
+  StyleSheet, 
+  RefreshControl,
+  TextInput, 
+  Text
+} from 'react-native';
+import { usePokemon } from '../hooks/usePokemon';
+import { useNetwork } from '../hooks/useNetwork';
+import { PokemonCard } from '../components/PokemonCard';
+import { LoadingIndicator } from '../components/LoadingIndicator';
+import { ErrorMessage } from '../components/ErrorMessage';
+import { NetworkStatus } from '../components/NetworkStatus';
+import { StorageService } from '../services/storage';
+import { Pokemon } from '../types/pokemon';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+
+interface PokemonListScreenProps {
+  navigation: any;
+}
+
+export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation }) => {
+  const { pokemonList, loading, error, hasMore, loadMore, refresh } = usePokemon();
+  const { isConnected } = useNetwork();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [favorites, setFavorites] = useState<number[]>([]);
+  const [showFavorites, setShowFavorites] = useState(false);
+
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const loadFavorites = async () => {
+    const favs = await StorageService.getFavorites();
+    setFavorites(favs);
+  };
+
+  const toggleFavorite = async (pokemonId: number) => {
+    if (favorites.includes(pokemonId)) {
+      await StorageService.removeFavorite(pokemonId);
+    } else {
+      await StorageService.addFavorite(pokemonId);
+    }
+    loadFavorites();
+  };
+
+  const filteredPokemon = pokemonList.filter(pokemon => {
+    const matchesSearch = pokemon.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const isFavorite = favorites.includes(pokemon.id);
+    
+    if (showFavorites) {
+      return matchesSearch && isFavorite;
+    }
+    return matchesSearch;
+  });
+
+  const handlePokemonPress = (pokemon: Pokemon) => {
+    navigation.navigate('PokemonDetail', { pokemon });
+  };
+
+  const renderPokemonItem = ({ item }: { item: Pokemon }) => (
+    <PokemonCard
+      pokemon={item}
+      onPress={handlePokemonPress}
+      isFavorite={favorites.includes(item.id)}
+      onToggleFavorite={toggleFavorite}
+    />
+  );
+
+  const loadMorePokemon = () => {
+    if (!loading && hasMore && isConnected && !showFavorites) {
+      loadMore();
+    }
+  };
+
+  if (error && pokemonList.length === 0) {
+    return <ErrorMessage message={error} onRetry={refresh} />;
+  }
+
+  return (
+    <View style={styles.container}>
+      <NetworkStatus />
+      
+      <View style={styles.header}>
+        <View style={styles.searchContainer}>
+          <FontAwesome6 name="search" size={16} color="#666" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search Pokémon..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        
+        <TouchableOpacity 
+          style={[styles.filterButton, showFavorites && styles.filterButtonActive]}
+          onPress={() => setShowFavorites(!showFavorites)}
+        >
+          <FontAwesome6 
+            name="heart" 
+            size={20} 
+            color={showFavorites ? "#FF6B6B" : "#666"} 
+          />
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={filteredPokemon}
+        renderItem={renderPokemonItem}
+        keyExtractor={(item) => item.id.toString()}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={refresh} />
+        }
+        onEndReached={loadMorePokemon}
+        onEndReachedThreshold={0.5}
+        ListEmptyComponent={
+          showFavorites ? (
+            <View style={styles.emptyState}>
+              <FontAwesome6 name="heart" size={48} color="#ccc" />
+              <Text style={styles.emptyStateText}>No favorite Pokémon yet</Text>
+            </View>
+          ) : loading ? (
+            <LoadingIndicator />
+          ) : (
+            <ErrorMessage message="No Pokémon found" />
+          )
+        }
+        ListFooterComponent={
+          loading && pokemonList.length > 0 ? <LoadingIndicator size="small" text="Loading more..." /> : null
+        }
+      />
+    </View>
+  );
+};
+
+const TouchableOpacity = ({ style, onPress, children }: any) => (
+  <View style={style} onStartShouldSetResponder={() => true} onResponderRelease={onPress}>
+    {children}
+  </View>
+);
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: 'white',
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    paddingVertical: 8,
+    fontSize: 16,
+  },
+  filterButton: {
+    padding: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: '#ffe6e6',
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyStateText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+});
+
+--- FILE: ./screens/PokemonDetailScreen.tsx ---
+
+import React, { useState, useEffect } from 'react';
+import { 
+  ScrollView, 
+  View, 
+  Text, 
+  Image, 
+  StyleSheet, 
+  TouchableOpacity // ← Gunakan ini dari React Native
+} from 'react-native';
+import { Pokemon } from '../types/pokemon';
+import { StorageService } from '../services/storage';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+
+interface PokemonDetailScreenProps {
+  route: any;
+  navigation: any;
+}
+
+export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({ 
+  route, 
+  navigation 
+}) => {
+  const { pokemon } = route.params;
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    checkFavoriteStatus();
+  }, [pokemon.id]);
+
+  const checkFavoriteStatus = async () => {
+    const favorite = await StorageService.isFavorite(pokemon.id);
+    setIsFavorite(favorite);
+  };
+
+  const toggleFavorite = async () => {
+    if (isFavorite) {
+      await StorageService.removeFavorite(pokemon.id);
+    } else {
+      await StorageService.addFavorite(pokemon.id);
+    }
+    setIsFavorite(!isFavorite);
+  };
+
+  const imageUrl = pokemon.sprites?.other?.['official-artwork']?.front_default 
+    || pokemon.sprites?.front_default 
+    || 'https://via.placeholder.com/200x200/ccc/fff?text=Pokemon';
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <FontAwesome6 name="arrow-left" size={24} color="#333" iconStyle='solid'/>
+        </TouchableOpacity>
+        
+        <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
+          <FontAwesome6 
+            name={isFavorite ? "heart" : "heart-circle-plus"} 
+            size={28} 
+            color={isFavorite ? "#FF6B6B" : "#333"} 
+            iconStyle='solid'
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.imageSection}>
+        <Image source={{ uri: imageUrl }} style={styles.image} />
+        <Text style={styles.name}>
+          {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
+        </Text>
+        <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
+      </View>
+
+      <View style={styles.detailsSection}>
+        <View style={styles.types}>
+          {pokemon.types?.map((typeInfo, index) => (
+            <View key={index} style={[styles.type, { backgroundColor: getTypeColor(typeInfo.type.name) }]}>
+              <Text style={styles.typeText}>
+                {typeInfo.type.name.toUpperCase()}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.stats}>
+          <Text style={styles.sectionTitle}>Base Stats</Text>
+          {pokemon.stats?.map((stat, index) => (
+            <View key={index} style={styles.statRow}>
+              <Text style={styles.statName}>
+                {stat.stat.name.replace('-', ' ').toUpperCase()}
+              </Text>
+              <View style={styles.statBarContainer}>
+                <View 
+                  style={[
+                    styles.statBar, 
+                    { width: `${Math.min(100, (stat.base_stat / 255) * 100)}%` }
+                  ]} 
+                />
+              </View>
+              <Text style={styles.statValue}>{stat.base_stat}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.physical}>
+          <View style={styles.physicalItem}>
+            <Text style={styles.physicalLabel}>Height</Text>
+            <Text style={styles.physicalValue}>{(pokemon.height / 10).toFixed(1)} m</Text>
+          </View>
+          <View style={styles.physicalItem}>
+            <Text style={styles.physicalLabel}>Weight</Text>
+            <Text style={styles.physicalValue}>{(pokemon.weight / 10).toFixed(1)} kg</Text>
+          </View>
+        </View>
+
+        {pokemon.abilities && (
+          <View style={styles.abilities}>
+            <Text style={styles.sectionTitle}>Abilities</Text>
+            <View style={styles.abilitiesList}>
+              {pokemon.abilities.map((ability, index) => (
+                <View key={index} style={styles.ability}>
+                  <Text style={styles.abilityText}>
+                    {ability.ability.name.replace('-', ' ').toUpperCase()}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+};
+
+const getTypeColor = (type: string): string => {
+  const colors: { [key: string]: string } = {
+    normal: '#A8A878', fire: '#F08030', water: '#6890F0', electric: '#F8D030',
+    grass: '#78C850', ice: '#98D8D8', fighting: '#C03028', poison: '#A040A0',
+    ground: '#E0C068', flying: '#A890F0', psychic: '#F85888', bug: '#A8B820',
+    rock: '#B8A038', ghost: '#705898', dragon: '#7038F8', dark: '#705848',
+    steel: '#B8B8D0', fairy: '#EE99AC',
+  };
+  return colors[type] || '#68A090';
+};
+
+// ⚠️ HAPUS BAGIAN INI - karena sudah ada import dari React Native
+// const TouchableOpacity = ({ style, onPress, children }: any) => (
+//   <View style={style} onStartShouldSetResponder={() => true} onResponderRelease={onPress}>
+//     {children}
+//   </View>
+// );
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: 60,
+  },
+  backButton: {
+    padding: 8,
+  },
+  favoriteButton: {
+    padding: 8,
+  },
+  imageSection: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  image: {
+    width: 200,
+    height: 200,
+  },
+  name: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 16,
+  },
+  id: {
+    fontSize: 18,
+    color: '#666',
+    marginTop: 4,
+  },
+  detailsSection: {
+    padding: 20,
+  },
+  types: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  type: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginHorizontal: 4,
+  },
+  typeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+  },
+  stats: {
+    marginBottom: 24,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statName: {
+    width: 100,
+    fontSize: 12,
+    color: '#666',
+  },
+  statBarContainer: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+    marginHorizontal: 12,
+  },
+  statBar: {
+    height: '100%',
+    backgroundColor: '#4CD964',
+    borderRadius: 4,
+  },
+  statValue: {
+    width: 30,
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  physical: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+  },
+  physicalItem: {
+    alignItems: 'center',
+  },
+  physicalLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  physicalValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  abilities: {
+    marginBottom: 24,
+  },
+  abilitiesList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  ability: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  abilityText: {
+    fontSize: 12,
+    color: '#333',
+  },
+});
+
+--- FILE: ./screens/PokemonListByTypeScreen.tsx ---
+
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  FlatList, 
+  StyleSheet, 
+  TextInput, 
+  RefreshControl 
+} from 'react-native';
+import { PokemonCard } from '../components/PokemonCard';
+import { LoadingIndicator } from '../components/LoadingIndicator';
+import { ErrorMessage } from '../components/ErrorMessage';
+import { NetworkStatus } from '../components/NetworkStatus';
+import { Pokemon } from '../types/pokemon';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+import { usePokemonByType } from '../hooks/usePokemonByType';
+
+interface PokemonListByTypeScreenProps {
+  route: any;
+  navigation: any;
+}
+
+export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = ({ 
+  route, 
+  navigation 
+}) => {
+  const { type } = route.params;
+  const { pokemonList, loading, error, refresh } = usePokemonByType(type);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  console.log(`Screen ${type}:`, { loading, error, count: pokemonList.length }); // Debug
+
+  const filteredPokemon = pokemonList.filter(pokemon =>
+    pokemon.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handlePokemonPress = (pokemon: Pokemon) => {
+    navigation.navigate('PokemonDetail', { pokemon });
+  };
+
+  if (error && pokemonList.length === 0) {
+    return <ErrorMessage message={error} onRetry={refresh} />;
+  }
+
+  return (
+    <View style={styles.container}>
+      <NetworkStatus />
+      
+      <View style={styles.searchContainer}>
+        <FontAwesome6 name="magnifying-glass" size={16} color="#666" iconStyle='solid'/>
+        <TextInput
+          style={styles.searchInput}
+          placeholder={`Search ${type || 'all'} Pokémon...`}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
+      <FlatList
+        data={filteredPokemon}
+        renderItem={({ item }) => (
+          <PokemonCard
+            pokemon={item}
+            onPress={handlePokemonPress}
+          />
+        )}
+        keyExtractor={(item) => item.id.toString()}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={refresh} />
+        }
+        ListEmptyComponent={
+          loading ? (
+            <LoadingIndicator />
+          ) : (
+            <ErrorMessage message={`No ${type || ''} Pokémon found`} />
+          )
+        }
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    margin: 16,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+});
+
+--- FILE: ./screens/FavoritesScreen.tsx ---
+
+import React, { useState, useEffect } from 'react';
+import { View, FlatList, Text, StyleSheet } from 'react-native';
+import { StorageService } from '../services/storage';
+import { PokemonAPI } from '../services/api';
+import { PokemonCard } from '../components/PokemonCard';
+import { LoadingIndicator } from '../components/LoadingIndicator';
+import { Pokemon } from '../types/pokemon';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+
+export const FavoritesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const [favorites, setFavorites] = useState<Pokemon[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadFavorites = async () => {
+    try {
+      const favoriteIds = await StorageService.getFavorites();
+      const favoritePokemon = await Promise.all(
+        favoriteIds.map(id => PokemonAPI.getPokemonDetail(id))
+      );
+      setFavorites(favoritePokemon);
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  if (loading) {
+    return <LoadingIndicator text="Loading favorites..." />;
+  }
+
+  return (
+    <View style={styles.container}>
+      {favorites.length === 0 ? (
+        <View style={styles.emptyState}>
+          <FontAwesome6 name="heart" size={64} color="#ccc" />
+          <Text style={styles.emptyText}>No favorites yet</Text>
+          <Text style={styles.emptySubtext}>Tap the heart icon on Pokémon to add them here</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={favorites}
+          renderItem={({ item }) => (
+            <PokemonCard
+              pokemon={item}
+              onPress={(pokemon) => navigation.navigate('PokemonDetail', { pokemon })}
+            />
+          )}
+          keyExtractor={(item) => item.id.toString()}
+        />
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 16,
+    marginTop: 8,
+  },
+});
+
+
+--- FILE: ./screens/ProfileScreen.tsx ---
+
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+
+export const ProfileScreen: React.FC = () => {
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <FontAwesome6 name="user" size={80} color="#FF6B6B" />
+        <Text style={styles.title}>Pokédex App</Text>
+        <Text style={styles.subtitle}>React Native Challenge</Text>
+      </View>
+      
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>App Information</Text>
+        <View style={styles.infoItem}>
+          <FontAwesome6 name="code" size={20} color="#666" iconStyle='solid'/>
+          <Text style={styles.infoText}>Built with React Native & TypeScript</Text>
+        </View>
+        <View style={styles.infoItem}>
+          <FontAwesome6 name="database" size={20} color="#666" iconStyle='solid'/>
+          <Text style={styles.infoText}>Data from PokeAPI</Text>
+        </View>
+        <View style={styles.infoItem}>
+          <FontAwesome6 name="heart" size={20} color="#666" iconStyle='solid'/>
+          <Text style={styles.infoText}>Favorites with AsyncStorage</Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: 'white',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 16,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 4,
+  },
+  section: {
+    backgroundColor: 'white',
+    padding: 16,
+    marginHorizontal: 16,
+    borderRadius: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  infoText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#666',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+});
+
+--- FILE: ./navigation/AppNavigator.tsx ---
+
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+import { RootStackParamList, MainTabParamList } from './types';
+import { HomeTopTabsNavigator } from './HomeTopTabsNavigator';
+import { PokemonDetailScreen } from '../screens/PokemonDetailScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
+import { FavoritesScreen } from '../screens/FavoritesScreen';
+
+const Stack = createStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
+
+const MainTabs: React.FC = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        tabBarActiveTintColor: '#FF6B6B',
+        tabBarInactiveTintColor: '#666',
+        tabBarStyle: {
+          backgroundColor: 'white',
+          borderTopWidth: 1,
+          borderTopColor: '#f0f0f0',
+        },
+        headerShown: false,
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeTopTabsNavigator}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome6 name="house" size={size} color={color} iconStyle='solid'/>
+          ),
+          title: 'Home',
+        }}
+      />
+      <Tab.Screen
+        name="Favorites"
+        component={FavoritesScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome6 name="heart" size={size} color={color} iconStyle='solid'/>
+          ),
+          title: 'Favorites',
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome6 name="user" size={size} color={color} />
+          ),
+          title: 'Profile',
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
+
+export const AppNavigator: React.FC = () => {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen 
+          name="MainTabs" 
+          component={MainTabs}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="PokemonDetail" 
+          component={PokemonDetailScreen}
+          options={{ 
+            title: 'Pokémon Details',
+            headerShown: false
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
+
+--- FILE: ./navigation/types.ts ---
+
+import { Pokemon } from '../types/pokemon';
+
+export type RootStackParamList = {
+  MainTabs: undefined;
+  PokemonDetail: { pokemon: Pokemon };
+};
+
+export type MainTabParamList = {
+  Home: undefined;
+  Favorites: undefined;
+  Profile: undefined;
+};
+
+export type HomeTopTabParamList = {
+  All: undefined;
+  Fire: undefined;
+  Water: undefined;
+  Grass: undefined;
+  Electric: undefined;
+  Ice: undefined;
+  Fighting: undefined;
+  Poison: undefined;
+  Ground: undefined;
+  Flying: undefined;
+  Psychic: undefined;
+  Bug: undefined;
+  Rock: undefined;
+  Ghost: undefined;
+  Dragon: undefined;
+  Dark: undefined;
+  Steel: undefined;
+  Fairy: undefined;
+};
+
+--- FILE: ./navigation/HomeTopTabsNavigator.tsx ---
+
+import React from 'react';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { HomeTopTabParamList } from './types';
+import { PokemonListByTypeScreen } from '../screens/PokemonListByTypeScreen';
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
+
+const TopTab = createMaterialTopTabNavigator<HomeTopTabParamList>();
+
+const pokemonTypes = [
+  { name: 'All', icon: 'list' as const },
+  { name: 'Fire', icon: 'fire' as const },
+  { name: 'Water', icon: 'droplet' as const },
+  { name: 'Grass', icon: 'leaf' as const },
+  { name: 'Electric', icon: 'bolt' as const },
+  { name: 'Ice', icon: 'snowflake' as const },
+  { name: 'Fighting', icon: 'hand-fist' as const },
+  { name: 'Poison', icon: 'skull' as const },
+  { name: 'Ground', icon: 'mountain' as const },
+  { name: 'Flying', icon: 'dove' as const },
+  { name: 'Psychic', icon: 'brain' as const },
+  { name: 'Bug', icon: 'bug' as const },
+  { name: 'Rock', icon: 'mountain' as const },
+  { name: 'Ghost', icon: 'ghost' as const },
+  { name: 'Dragon', icon: 'dragon' as const },
+  { name: 'Dark', icon: 'moon' as const },
+  { name: 'Steel', icon: 'shield' as const },
+  { name: 'Fairy', icon: 'wand-magic-sparkles' as const },
+];
+
+export const HomeTopTabsNavigator: React.FC = () => {
+  return (
+    <TopTab.Navigator
+      screenOptions={{
+        tabBarScrollEnabled: true,
+        tabBarItemStyle: { width: 'auto' },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: 'bold' },
+        tabBarStyle: { backgroundColor: 'white' },
+        tabBarIndicatorStyle: { backgroundColor: '#FF6B6B' },
+      }}
+    >
+      {pokemonTypes.map((type) => (
+        <TopTab.Screen
+          key={type.name}
+          name={type.name as keyof HomeTopTabParamList}
+          component={PokemonListByTypeScreen}
+          initialParams={{ type: type.name === 'All' ? null : type.name.toLowerCase() }}
+          options={{
+            title: type.name,
+            tabBarIcon: ({ color }) => (
+              <FontAwesome6 name={type.icon} size={16} color={color} iconStyle='solid'/>
+            ),
+          }}
+        />
+      ))}
+    </TopTab.Navigator>
+  );
+};
+
+--- FILE: ./src.txt ---
+

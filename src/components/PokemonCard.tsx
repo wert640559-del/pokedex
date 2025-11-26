@@ -34,6 +34,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
               name={isFavorite ? "heart" : "heart-circle-plus"} 
               size={20} 
               color={isFavorite ? "#FF6B6B" : "#666"} 
+              iconStyle='solid'
             />
           </TouchableOpacity>
         )}

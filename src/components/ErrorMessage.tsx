@@ -9,7 +9,7 @@ interface ErrorMessageProps {
 
 export const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, onRetry }) => (
   <View style={styles.container}>
-    <FontAwesome6 name="triangle-exclamation" size={48} color="#FF6B6B" />
+    <FontAwesome6 name="triangle-exclamation" size={48} color="#FF6B6B" iconStyle='solid'/>
     <Text style={styles.message}>{message}</Text>
     {onRetry && (
       <TouchableOpacity style={styles.retryButton} onPress={onRetry}>

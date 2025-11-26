@@ -49,7 +49,7 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <FontAwesome6 name="arrow-left" size={24} color="#333" />
+          <FontAwesome6 name="arrow-left" size={24} color="#333" iconStyle='solid'/>
         </TouchableOpacity>
         
         <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
@@ -57,6 +57,7 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
             name={isFavorite ? "heart" : "heart-circle-plus"} 
             size={28} 
             color={isFavorite ? "#FF6B6B" : "#333"} 
+            iconStyle='solid'
           />
         </TouchableOpacity>
       </View>
