@@ -17,7 +17,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
   isFavorite = false, 
   onToggleFavorite 
 }) => {
-  const { scale, verticalScale, moderateScale, isSmallDevice, isTablet } = useResponsive();
+  const { scale, verticalScale, moderateScale, width, isSmallDevice, isTablet } = useResponsive();
 
   const imageUrl = pokemon.sprites?.other?.['official-artwork']?.front_default 
     || pokemon.sprites?.front_default 
@@ -27,41 +27,43 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
     onToggleFavorite?.(pokemon.id);
   };
 
-  const styles = createStyles(scale, verticalScale, moderateScale, isSmallDevice, isTablet);
+  const styles = createStyles(scale, verticalScale, moderateScale, width, isSmallDevice, isTablet);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={() => onPress(pokemon)}>
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: imageUrl }} style={styles.image} />
-        {onToggleFavorite && (
-          <TouchableOpacity style={styles.favoriteButton} onPress={handleFavoritePress}>
-            <FontAwesome6 
-              name={isFavorite ? "heart" : "heart-circle-plus"} 
-              size={moderateScale(20)} 
-              color={isFavorite ? "#FF6B6B" : "#666"} 
-              iconStyle='solid'
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-      
-      <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
-          {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
-        </Text>
-        <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
-        
-        <View style={styles.types}>
-          {pokemon.types?.map((typeInfo, index) => (
-            <View key={index} style={[styles.type, { backgroundColor: getTypeColor(typeInfo.type.name) }]}>
-              <Text style={styles.typeText} numberOfLines={1}>
-                {typeInfo.type.name.toUpperCase()}
-              </Text>
-            </View>
-          ))}
+    <View style={styles.cardContainer}>
+      <TouchableOpacity style={styles.card} onPress={() => onPress(pokemon)}>
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: imageUrl }} style={styles.image} />
+          {onToggleFavorite && (
+            <TouchableOpacity style={styles.favoriteButton} onPress={handleFavoritePress}>
+              <FontAwesome6 
+                name={isFavorite ? "heart" : "heart-circle-plus"} 
+                size={moderateScale(16)} 
+                color={isFavorite ? "#FF6B6B" : "#666"} 
+                iconStyle='solid'
+              />
+            </TouchableOpacity>
+          )}
         </View>
-      </View>
-    </TouchableOpacity>
+        
+        <View style={styles.info}>
+          <Text style={styles.name} numberOfLines={1}>
+            {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
+          </Text>
+          <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
+          
+          <View style={styles.types}>
+            {pokemon.types?.map((typeInfo, index) => (
+              <View key={index} style={[styles.type, { backgroundColor: getTypeColor(typeInfo.type.name) }]}>
+                <Text style={styles.typeText} numberOfLines={1}>
+                  {typeInfo.type.name.toUpperCase()}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -93,82 +95,97 @@ const createStyles = (
   scale: (size: number) => number,
   verticalScale: (size: number) => number,
   moderateScale: (size: number, factor?: number) => number,
+  width: number,
   isSmallDevice: boolean,
   isTablet: boolean
-) => StyleSheet.create({
-  card: {
-    backgroundColor: 'white',
-    borderRadius: moderateScale(12),
-    padding: moderateScale(12),
-    margin: isSmallDevice ? moderateScale(4) : moderateScale(8),
-    shadowColor: '#000',
-    shadowOffset: { 
-      width: 0, 
-      height: moderateScale(2) 
+) => {
+  // Hitung lebar card untuk 2 kolom dengan margin yang sama
+  const screenPadding = moderateScale(16); // Total padding kiri-kanan
+  const gap = moderateScale(8); // Jarak antara card
+  const cardWidth = (width - screenPadding * 2 - gap) / 2;
+
+  return StyleSheet.create({
+    cardContainer: {
+      width: cardWidth,
+      marginBottom: moderateScale(16),
+      marginHorizontal: moderateScale(8),
     },
-    shadowOpacity: 0.1,
-    shadowRadius: moderateScale(4),
-    elevation: 3,
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: verticalScale(80),
-  },
-  imageContainer: {
-    position: 'relative',
-  },
-  image: {
-    width: isTablet ? moderateScale(100) : 
-           isSmallDevice ? moderateScale(60) : moderateScale(80),
-    height: isTablet ? moderateScale(100) : 
-            isSmallDevice ? moderateScale(60) : moderateScale(80),
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: moderateScale(-5),
-    right: moderateScale(-5),
-    backgroundColor: 'white',
-    borderRadius: moderateScale(15),
-    padding: moderateScale(4),
-    shadowColor: '#000',
-    shadowOffset: { 
-      width: 0, 
-      height: moderateScale(1) 
+    card: {
+      backgroundColor: 'white',
+      borderRadius: moderateScale(12),
+      padding: moderateScale(12),
+      shadowColor: '#000',
+      shadowOffset: { 
+        width: 0, 
+        height: moderateScale(2) 
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: moderateScale(4),
+      elevation: 3,
+      alignItems: 'center',
+      flex: 1,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: moderateScale(2),
-    elevation: 2,
-  },
-  info: {
-    flex: 1,
-    marginLeft: moderateScale(12),
-  },
-  name: {
-    fontSize: isTablet ? moderateScale(20) : 
-              isSmallDevice ? moderateScale(14) : moderateScale(18),
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  id: {
-    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
-    color: '#666',
-    marginBottom: verticalScale(8),
-  },
-  types: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  type: {
-    paddingHorizontal: moderateScale(8),
-    paddingVertical: moderateScale(4),
-    borderRadius: moderateScale(12),
-    marginRight: moderateScale(6),
-    marginBottom: moderateScale(4),
-    minWidth: moderateScale(50),
-  },
-  typeText: {
-    fontSize: isSmallDevice ? moderateScale(8) : moderateScale(10),
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-  },
-});
+    imageContainer: {
+      position: 'relative',
+      alignItems: 'center',
+    },
+    image: {
+      width: isTablet ? moderateScale(100) : 
+             isSmallDevice ? moderateScale(80) : moderateScale(90),
+      height: isTablet ? moderateScale(100) : 
+              isSmallDevice ? moderateScale(80) : moderateScale(90),
+    },
+    favoriteButton: {
+      position: 'absolute',
+      top: moderateScale(-8),
+      right: moderateScale(-8),
+      backgroundColor: 'white',
+      borderRadius: moderateScale(15),
+      padding: moderateScale(4),
+      shadowColor: '#000',
+      shadowOffset: { 
+        width: 0, 
+        height: moderateScale(1) 
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: moderateScale(2),
+      elevation: 2,
+    },
+    info: {
+      alignItems: 'center',
+      marginTop: verticalScale(8),
+      width: '100%',
+    },
+    name: {
+      fontSize: isTablet ? moderateScale(16) : 
+                isSmallDevice ? moderateScale(12) : moderateScale(14),
+      fontWeight: 'bold',
+      color: '#333',
+      textAlign: 'center',
+    },
+    id: {
+      fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
+      color: '#666',
+      marginBottom: verticalScale(8),
+      textAlign: 'center',
+    },
+    types: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+    },
+    type: {
+      paddingHorizontal: moderateScale(6),
+      paddingVertical: moderateScale(2),
+      borderRadius: moderateScale(8),
+      margin: moderateScale(2),
+      minWidth: moderateScale(40),
+    },
+    typeText: {
+      fontSize: isSmallDevice ? moderateScale(7) : moderateScale(8),
+      fontWeight: 'bold',
+      color: 'white',
+      textAlign: 'center',
+    },
+  });
+};

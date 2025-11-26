@@ -31,6 +31,7 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showFavorites, setShowFavorites] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadFavorites();
@@ -48,6 +49,12 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
       await StorageService.addFavorite(pokemonId);
     }
     loadFavorites();
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
   };
 
   const filteredPokemon = pokemonList.filter(pokemon => {
@@ -82,7 +89,12 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
   const styles = createStyles(scale, moderateScale, isSmallDevice, isTablet);
 
   if (error && pokemonList.length === 0) {
-    return <ErrorMessage message={error} onRetry={refresh} />;
+    return (
+      <View style={styles.container}>
+        <NetworkStatus />
+        <ErrorMessage message={error} onRetry={refresh} />
+      </View>
+    );
   }
 
   return (
@@ -114,34 +126,51 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
       </View>
 
       <FlatList
-        data={filteredPokemon}
-        renderItem={renderPokemonItem}
-        keyExtractor={(item) => item.id.toString()}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} />
-        }
-        onEndReached={loadMorePokemon}
-        onEndReachedThreshold={0.3}
-        ListEmptyComponent={
-          showFavorites ? (
-            <View style={styles.emptyState}>
-              <FontAwesome6 name="heart" size={moderateScale(48)} color="#ccc" />
-              <Text style={styles.emptyStateText}>No favorite Pokémon yet</Text>
-            </View>
-          ) : loading ? (
-            <LoadingIndicator />
-          ) : (
-            <ErrorMessage message="No Pokémon found" />
-          )
-        }
-        ListFooterComponent={
-          loading && pokemonList.length > 0 ? (
-            <LoadingIndicator size="small" text="Loading more..." />
-          ) : null
-        }
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+  data={filteredPokemon}
+  renderItem={renderPokemonItem}
+  keyExtractor={(item) => item.id.toString()}
+  refreshControl={
+    <RefreshControl 
+      refreshing={refreshing || loading} 
+      onRefresh={handleRefresh} 
+    />
+  }
+  onEndReached={loadMorePokemon}
+  onEndReachedThreshold={0.3}
+  numColumns={2}
+  columnWrapperStyle={styles.columnWrapper}
+  ListEmptyComponent={
+    showFavorites ? (
+      <View style={styles.emptyState}>
+        <FontAwesome6 name="heart" size={moderateScale(48)} color="#ccc" />
+        <Text style={styles.emptyStateText}>No favorite Pokémon yet</Text>
+        <Text style={styles.emptySubtext}>
+          Tap the heart icon on Pokémon to add them here
+        </Text>
+      </View>
+    ) : loading ? (
+      <LoadingIndicator />
+    ) : (
+      <View style={styles.emptyState}>
+        <FontAwesome6 name="magnifying-glass" size={moderateScale(48)} color="#ccc" iconStyle='solid'/>
+        <Text style={styles.emptyStateText}>No Pokémon found</Text>
+        <Text style={styles.emptySubtext}>
+          {searchQuery ? 'Try a different search term' : 'Check your internet connection'}
+        </Text>
+      </View>
+    )
+  }
+  ListFooterComponent={
+    loading && pokemonList.length > 0 && !showFavorites ? (
+      <LoadingIndicator size="small" text="Loading more Pokémon..." />
+    ) : null
+  }
+  contentContainerStyle={[
+    styles.listContent,
+    filteredPokemon.length === 0 && styles.emptyListContent
+  ]}
+  showsVerticalScrollIndicator={false}
+/>
     </View>
   );
 };
@@ -161,6 +190,14 @@ const createStyles = (
     padding: moderateScale(16),
     backgroundColor: 'white',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 3,
   },
   searchContainer: {
     flex: 1,
@@ -186,22 +223,44 @@ const createStyles = (
     height: moderateScale(44),
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: moderateScale(44),
   },
   filterButtonActive: {
     backgroundColor: '#ffe6e6',
   },
-  emptyState: {
-    alignItems: 'center',
-    padding: moderateScale(40),
-  },
-  emptyStateText: {
-    marginTop: moderateScale(12),
-    fontSize: isSmallDevice ? moderateScale(14) : moderateScale(16),
-    color: '#666',
-    textAlign: 'center',
+  columnWrapper: {
+    justifyContent: 'center',
+    paddingHorizontal: moderateScale(8),
   },
   listContent: {
     flexGrow: 1,
+    paddingHorizontal: moderateScale(8),
     paddingBottom: moderateScale(20),
   },
+  emptyListContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: moderateScale(40),
+    flex: 1,
+    justifyContent: 'center',
+  },
+  emptyStateText: {
+    marginTop: moderateScale(16),
+    fontSize: isSmallDevice ? moderateScale(16) : moderateScale(18),
+    color: '#666',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    marginTop: moderateScale(8),
+    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: moderateScale(20),
+  },
 });
+
+export default PokemonListScreen;

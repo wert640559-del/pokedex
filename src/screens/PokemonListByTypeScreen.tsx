@@ -1,5 +1,3 @@
-// FILE: ./screens/PokemonListByTypeScreen.tsx
-
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
@@ -16,6 +14,7 @@ import { NetworkStatus } from '../components/NetworkStatus';
 import { Pokemon } from '../types/pokemon';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
 import { usePokemonByType } from '../hooks/usePokemonByType';
+import { useResponsive } from '../hooks/useResponsive';
 
 interface PokemonListByTypeScreenProps {
   route: any;
@@ -37,15 +36,15 @@ export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = (
     refresh 
   } = usePokemonByType(type);
   
+  const { moderateScale, isSmallDevice } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   
-  console.log(`Screen ${type}:`, { 
-    loading, 
-    error, 
-    count: pokemonList.length,
-    hasMore,
-    loadingMore 
-  });
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
 
   const filteredPokemon = pokemonList.filter(pokemon =>
     pokemon.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -56,13 +55,20 @@ export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = (
   };
 
   const handleLoadMore = () => {
-    if (!type) { // Hanya load more untuk tab "All"
+    if (!type && !loadingMore && hasMore) {
       loadMore();
     }
   };
 
+  const styles = createStyles(moderateScale, isSmallDevice);
+
   if (error && pokemonList.length === 0) {
-    return <ErrorMessage message={error} onRetry={refresh} />;
+    return (
+      <View style={styles.container}>
+        <NetworkStatus />
+        <ErrorMessage message={error} onRetry={refresh} />
+      </View>
+    );
   }
 
   return (
@@ -70,12 +76,13 @@ export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = (
       <NetworkStatus />
       
       <View style={styles.searchContainer}>
-        <FontAwesome6 name="magnifying-glass" size={16} color="#666" iconStyle='solid'/>
+        <FontAwesome6 name="magnifying-glass" size={moderateScale(16)} color="#666" iconStyle='solid'/>
         <TextInput
           style={styles.searchInput}
           placeholder={`Search ${type || 'all'} Pokémon...`}
           value={searchQuery}
           onChangeText={setSearchQuery}
+          placeholderTextColor="#999"
         />
       </View>
 
@@ -89,30 +96,51 @@ export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = (
         )}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} />
+          <RefreshControl 
+            refreshing={refreshing || loading} 
+            onRefresh={handleRefresh} 
+          />
         }
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
+        numColumns={2}
+        columnWrapperStyle={styles.columnWrapper}
         ListEmptyComponent={
           loading ? (
             <LoadingIndicator />
           ) : (
-            <ErrorMessage message={`No ${type || ''} Pokémon found`} />
+            <View style={styles.emptyState}>
+              <FontAwesome6 name="magnifying-glass" size={moderateScale(48)} color="#ccc" iconStyle='solid'/>
+              <Text style={styles.emptyStateText}>
+                {searchQuery ? 'No Pokémon found' : `No ${type || ''} Pokémon available`}
+              </Text>
+              <Text style={styles.emptySubtext}>
+                {searchQuery ? 'Try a different search term' : 'Check back later for more Pokémon'}
+              </Text>
+            </View>
           )
         }
         ListFooterComponent={
           loadingMore ? (
             <LoadingIndicator size="small" text="Loading more Pokémon..." />
-          ) : !type && hasMore ? (
-            <Text style={styles.loadMoreText}>Scroll down to load more</Text>
+          ) : !type && hasMore && filteredPokemon.length > 0 ? (
+            <Text style={styles.loadMoreText}>Scroll down to load more Pokémon</Text>
           ) : null
         }
+        contentContainerStyle={[
+          styles.listContent,
+          filteredPokemon.length === 0 && styles.emptyListContent
+        ]}
+        showsVerticalScrollIndicator={false}
       />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (
+  moderateScale: (size: number, factor?: number) => number,
+  isSmallDevice: boolean
+) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -121,25 +149,61 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    margin: 16,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    margin: moderateScale(16),
+    paddingHorizontal: moderateScale(12),
+    borderRadius: moderateScale(8),
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: moderateScale(1) },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: moderateScale(2),
     elevation: 2,
+    height: moderateScale(44),
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
-    paddingVertical: 10,
-    fontSize: 16,
+    marginLeft: moderateScale(8),
+    paddingVertical: moderateScale(10),
+    fontSize: isSmallDevice ? moderateScale(14) : moderateScale(16),
+    color: '#333',
+  },
+  columnWrapper: {
+    justifyContent: 'center',
+  },
+  listContent: {
+    flexGrow: 1,
+    paddingHorizontal: moderateScale(8),
+    paddingBottom: moderateScale(20),
+  },
+  emptyListContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: moderateScale(40),
+    flex: 1,
+    justifyContent: 'center',
+  },
+  emptyStateText: {
+    marginTop: moderateScale(16),
+    fontSize: isSmallDevice ? moderateScale(16) : moderateScale(18),
+    color: '#666',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    marginTop: moderateScale(8),
+    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: moderateScale(20),
   },
   loadMoreText: {
     textAlign: 'center',
-    padding: 16,
+    padding: moderateScale(16),
     color: '#666',
-    fontSize: 14,
+    fontSize: moderateScale(14),
   },
 });
+
+export default PokemonListByTypeScreen;
