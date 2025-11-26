@@ -111,7 +111,7 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
             <View style={styles.physical}>
               <View style={styles.physicalItem}>
                 <View style={styles.physicalIcon}>
-                  <FontAwesome6 name="ruler-vertical" size={moderateScale(20)} color="#1D2C5E" />
+                  <FontAwesome6 name="ruler-vertical" size={moderateScale(20)} color="#1D2C5E" iconStyle='solid'/>
                 </View>
                 <View style={styles.physicalInfo}>
                   <Text style={styles.physicalLabel}>Height</Text>
@@ -120,7 +120,7 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
               </View>
               <View style={styles.physicalItem}>
                 <View style={styles.physicalIcon}>
-                  <FontAwesome6 name="weight-scale" size={moderateScale(20)} color="#1D2C5E" />
+                  <FontAwesome6 name="weight-scale" size={moderateScale(20)} color="#1D2C5E" iconStyle='solid'/>
                 </View>
                 <View style={styles.physicalInfo}>
                   <Text style={styles.physicalLabel}>Weight</Text>
