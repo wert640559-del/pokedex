@@ -205,6 +205,8 @@ export const useNetwork = () => {
 
 --- FILE: ./hooks/usePokemonByType.ts ---
 
+// FILE: ./hooks/usePokemonByType.ts
+
 import { useState, useEffect } from 'react';
 import { Pokemon } from '../types/pokemon';
 import { PokemonAPI } from '../services/api';
@@ -213,27 +215,32 @@ export const usePokemonByType = (type: string | null) => {
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const loadPokemon = async () => {
+  const loadPokemon = async (loadOffset = 0, loadMore = false) => {
     try {
-      setLoading(true);
+      if (loadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
 
       if (type) {
-        // Load by type - FIXED
+        // Load by type - tetap 20 untuk performance
         const typeData = await PokemonAPI.getPokemonByType(type);
-        console.log('Type data:', typeData); // Debug log
+        console.log('Type data:', typeData);
         
         const detailedPokemon = await Promise.all(
           typeData.pokemon.slice(0, 20).map(async (p: any) => {
             try {
-              // Extract pokemon name dari nested object
               const pokemonName = p.pokemon.name;
               const pokemonDetail = await PokemonAPI.getPokemonDetail(pokemonName);
               return pokemonDetail;
             } catch (error) {
               console.error(`Error loading ${p.pokemon.name}:`, error);
-              // Return basic structure as fallback
               return {
                 id: 0,
                 name: p.pokemon.name,
@@ -248,19 +255,24 @@ export const usePokemonByType = (type: string | null) => {
             }
           })
         );
-        setPokemonList(detailedPokemon.filter(p => p.id !== 0)); // Filter out failed requests
+        setPokemonList(detailedPokemon.filter(p => p.id !== 0));
+        setHasMore(false); // Untuk type-based, tidak ada load more
       } else {
-        // Load all - FIXED
-        const data = await PokemonAPI.getPokemonList(0, 20);
+        // Load all - IMPLEMENTASI INFINITE SCROLL
+        const limit = 20; // Load 20 per batch
+        const data = await PokemonAPI.getPokemonList(loadOffset, limit);
+        console.log(`Loading Pokémon ${loadOffset} to ${loadOffset + limit}`);
+        
         const detailedPokemon = await Promise.all(
           data.results.map(async (pokemon, index) => {
             try {
-              return await PokemonAPI.getPokemonDetail(index + 1);
+              // Gunakan ID dari URL atau index
+              const pokemonId = loadOffset + index + 1;
+              return await PokemonAPI.getPokemonDetail(pokemonId);
             } catch (error) {
-              console.error(`Error loading Pokemon ${index + 1}:`, error);
-              // Return proper fallback structure
+              console.error(`Error loading Pokemon ${loadOffset + index + 1}:`, error);
               return {
-                id: index + 1,
+                id: loadOffset + index + 1,
                 name: pokemon.name,
                 url: pokemon.url,
                 sprites: { front_default: '', other: { 'official-artwork': { front_default: '' } } },
@@ -273,25 +285,53 @@ export const usePokemonByType = (type: string | null) => {
             }
           })
         );
-        setPokemonList(detailedPokemon.filter(p => p.id !== 0));
+
+        const validPokemon = detailedPokemon.filter(p => p.id !== 0);
+        
+        if (loadOffset === 0) {
+          setPokemonList(validPokemon);
+        } else {
+          setPokemonList(prev => [...prev, ...validPokemon]);
+        }
+
+        setHasMore(!!data.next);
+        setOffset(loadOffset + limit);
       }
     } catch (err) {
       console.error('Error in usePokemonByType:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch Pokémon');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
+  const loadMore = () => {
+    if (!loadingMore && hasMore && !type) { // Hanya untuk tab "All"
+      loadPokemon(offset, true);
+    }
+  };
+
+  const refresh = () => {
+    setOffset(0);
+    setHasMore(true);
+    loadPokemon(0);
+  };
+
   useEffect(() => {
-    loadPokemon();
+    setOffset(0);
+    setHasMore(true);
+    loadPokemon(0);
   }, [type]);
 
   return {
     pokemonList,
     loading,
+    loadingMore,
     error,
-    refresh: loadPokemon,
+    hasMore,
+    loadMore,
+    refresh,
   };
 };
 
@@ -1045,13 +1085,16 @@ const styles = StyleSheet.create({
 
 --- FILE: ./screens/PokemonListByTypeScreen.tsx ---
 
+// FILE: ./screens/PokemonListByTypeScreen.tsx
+
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
   FlatList, 
   StyleSheet, 
   TextInput, 
-  RefreshControl 
+  RefreshControl,
+  Text 
 } from 'react-native';
 import { PokemonCard } from '../components/PokemonCard';
 import { LoadingIndicator } from '../components/LoadingIndicator';
@@ -1071,10 +1114,25 @@ export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = (
   navigation 
 }) => {
   const { type } = route.params;
-  const { pokemonList, loading, error, refresh } = usePokemonByType(type);
+  const { 
+    pokemonList, 
+    loading, 
+    loadingMore, 
+    error, 
+    hasMore, 
+    loadMore, 
+    refresh 
+  } = usePokemonByType(type);
+  
   const [searchQuery, setSearchQuery] = useState('');
   
-  console.log(`Screen ${type}:`, { loading, error, count: pokemonList.length }); // Debug
+  console.log(`Screen ${type}:`, { 
+    loading, 
+    error, 
+    count: pokemonList.length,
+    hasMore,
+    loadingMore 
+  });
 
   const filteredPokemon = pokemonList.filter(pokemon =>
     pokemon.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -1082,6 +1140,12 @@ export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = (
 
   const handlePokemonPress = (pokemon: Pokemon) => {
     navigation.navigate('PokemonDetail', { pokemon });
+  };
+
+  const handleLoadMore = () => {
+    if (!type) { // Hanya load more untuk tab "All"
+      loadMore();
+    }
   };
 
   if (error && pokemonList.length === 0) {
@@ -1114,12 +1178,21 @@ export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = (
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={refresh} />
         }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
         ListEmptyComponent={
           loading ? (
             <LoadingIndicator />
           ) : (
             <ErrorMessage message={`No ${type || ''} Pokémon found`} />
           )
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <LoadingIndicator size="small" text="Loading more Pokémon..." />
+          ) : !type && hasMore ? (
+            <Text style={styles.loadMoreText}>Scroll down to load more</Text>
+          ) : null
         }
       />
     </View>
@@ -1150,12 +1223,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
   },
+  loadMoreText: {
+    textAlign: 'center',
+    padding: 16,
+    color: '#666',
+    fontSize: 14,
+  },
 });
 
 --- FILE: ./screens/FavoritesScreen.tsx ---
 
+// FILE: ./screens/FavoritesScreen.tsx
+
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, Text, StyleSheet } from 'react-native';
+import { View, FlatList, Text, StyleSheet, RefreshControl } from 'react-native';
+import { useIsFocused } from '@react-navigation/native'; // IMPORT BARU
 import { StorageService } from '../services/storage';
 import { PokemonAPI } from '../services/api';
 import { PokemonCard } from '../components/PokemonCard';
@@ -1166,24 +1248,47 @@ import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
 export const FavoritesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [favorites, setFavorites] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const isFocused = useIsFocused(); // Hook untuk detect screen focus
 
   const loadFavorites = async () => {
     try {
+      console.log('Loading favorites...');
       const favoriteIds = await StorageService.getFavorites();
+      console.log('Favorite IDs:', favoriteIds);
+      
+      if (favoriteIds.length === 0) {
+        setFavorites([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       const favoritePokemon = await Promise.all(
         favoriteIds.map(id => PokemonAPI.getPokemonDetail(id))
       );
+      
+      console.log('Loaded favorites:', favoritePokemon.length);
       setFavorites(favoritePokemon);
     } catch (error) {
       console.error('Error loading favorites:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  // Load data saat screen focus atau pertama kali mount
   useEffect(() => {
+    if (isFocused) {
+      loadFavorites();
+    }
+  }, [isFocused]); // Dependency pada isFocused
+
+  const onRefresh = () => {
+    setRefreshing(true);
     loadFavorites();
-  }, []);
+  };
 
   if (loading) {
     return <LoadingIndicator text="Loading favorites..." />;
@@ -1207,6 +1312,9 @@ export const FavoritesScreen: React.FC<{ navigation: any }> = ({ navigation }) =
             />
           )}
           keyExtractor={(item) => item.id.toString()}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         />
       )}
     </View>
@@ -1216,24 +1324,26 @@ export const FavoritesScreen: React.FC<{ navigation: any }> = ({ navigation }) =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: '#f5f5f5',
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 32,
   },
   emptyText: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 18,
+    color: '#666',
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 16,
+    fontSize: 14,
+    color: '#999',
     marginTop: 8,
+    textAlign: 'center',
   },
 });
-
 
 --- FILE: ./screens/ProfileScreen.tsx ---
 

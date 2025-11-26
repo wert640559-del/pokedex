@@ -5,11 +5,12 @@ import {
   Text, 
   Image, 
   StyleSheet, 
-  TouchableOpacity // ← Gunakan ini dari React Native
+  TouchableOpacity
 } from 'react-native';
 import { Pokemon } from '../types/pokemon';
 import { StorageService } from '../services/storage';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+import { useResponsive } from '../hooks/useResponsive';
 
 interface PokemonDetailScreenProps {
   route: any;
@@ -22,6 +23,7 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
 }) => {
   const { pokemon } = route.params;
   const [isFavorite, setIsFavorite] = useState(false);
+  const { scale, verticalScale, moderateScale, width, height, isSmallDevice, isTablet } = useResponsive();
 
   useEffect(() => {
     checkFavoriteStatus();
@@ -45,17 +47,19 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
     || pokemon.sprites?.front_default 
     || 'https://via.placeholder.com/200x200/ccc/fff?text=Pokemon';
 
+  const styles = createStyles(scale, verticalScale, moderateScale, width, height, isSmallDevice, isTablet);
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <FontAwesome6 name="arrow-left" size={24} color="#333" iconStyle='solid'/>
+          <FontAwesome6 name="arrow-left" size={moderateScale(24)} color="#333" iconStyle='solid'/>
         </TouchableOpacity>
         
         <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
           <FontAwesome6 
             name={isFavorite ? "heart" : "heart-circle-plus"} 
-            size={28} 
+            size={moderateScale(28)} 
             color={isFavorite ? "#FF6B6B" : "#333"} 
             iconStyle='solid'
           />
@@ -85,7 +89,7 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
           <Text style={styles.sectionTitle}>Base Stats</Text>
           {pokemon.stats?.map((stat, index) => (
             <View key={index} style={styles.statRow}>
-              <Text style={styles.statName}>
+              <Text style={styles.statName} numberOfLines={1}>
                 {stat.stat.name.replace('-', ' ').toUpperCase()}
               </Text>
               <View style={styles.statBarContainer}>
@@ -118,7 +122,7 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
             <View style={styles.abilitiesList}>
               {pokemon.abilities.map((ability, index) => (
                 <View key={index} style={styles.ability}>
-                  <Text style={styles.abilityText}>
+                  <Text style={styles.abilityText} numberOfLines={1}>
                     {ability.ability.name.replace('-', ' ').toUpperCase()}
                   </Text>
                 </View>
@@ -142,14 +146,15 @@ const getTypeColor = (type: string): string => {
   return colors[type] || '#68A090';
 };
 
-// ⚠️ HAPUS BAGIAN INI - karena sudah ada import dari React Native
-// const TouchableOpacity = ({ style, onPress, children }: any) => (
-//   <View style={style} onStartShouldSetResponder={() => true} onResponderRelease={onPress}>
-//     {children}
-//   </View>
-// );
-
-const styles = StyleSheet.create({
+const createStyles = (
+  scale: (size: number) => number,
+  verticalScale: (size: number) => number,
+  moderateScale: (size: number, factor?: number) => number,
+  width: number,
+  height: number,
+  isSmallDevice: boolean,
+  isTablet: boolean
+) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
@@ -158,113 +163,126 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    paddingTop: 60,
+    paddingHorizontal: moderateScale(16),
+    paddingTop: height * 0.06,
+    paddingBottom: verticalScale(16),
   },
   backButton: {
-    padding: 8,
+    padding: moderateScale(8),
   },
   favoriteButton: {
-    padding: 8,
+    padding: moderateScale(8),
   },
   imageSection: {
     alignItems: 'center',
-    padding: 20,
+    padding: moderateScale(20),
   },
   image: {
-    width: 200,
-    height: 200,
+    width: isTablet ? width * 0.4 : width * 0.5,
+    height: isTablet ? width * 0.4 : width * 0.5,
+    maxWidth: 300,
+    maxHeight: 300,
   },
   name: {
-    fontSize: 32,
+    fontSize: isTablet ? moderateScale(36) : 
+              isSmallDevice ? moderateScale(24) : moderateScale(32),
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 16,
+    marginTop: verticalScale(16),
+    textAlign: 'center',
   },
   id: {
-    fontSize: 18,
+    fontSize: isTablet ? moderateScale(22) : 
+              isSmallDevice ? moderateScale(16) : moderateScale(18),
     color: '#666',
-    marginTop: 4,
+    marginTop: verticalScale(4),
   },
   detailsSection: {
-    padding: 20,
+    padding: moderateScale(20),
   },
   types: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 24,
+    flexWrap: 'wrap',
+    marginBottom: verticalScale(24),
   },
   type: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginHorizontal: 4,
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(8),
+    borderRadius: moderateScale(20),
+    margin: moderateScale(4),
+    minWidth: isSmallDevice ? moderateScale(70) : moderateScale(80),
   },
   typeText: {
-    fontSize: 12,
+    fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
     fontWeight: 'bold',
     color: 'white',
+    textAlign: 'center',
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: isTablet ? moderateScale(24) : 
+              isSmallDevice ? moderateScale(18) : moderateScale(20),
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 16,
+    marginBottom: verticalScale(16),
   },
   stats: {
-    marginBottom: 24,
+    marginBottom: verticalScale(24),
   },
   statRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: verticalScale(12),
   },
   statName: {
-    width: 100,
-    fontSize: 12,
+    width: isTablet ? moderateScale(120) : 
+           isSmallDevice ? moderateScale(80) : moderateScale(100),
+    fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
     color: '#666',
   },
   statBarContainer: {
     flex: 1,
-    height: 8,
+    height: moderateScale(8),
     backgroundColor: '#f0f0f0',
-    borderRadius: 4,
-    marginHorizontal: 12,
+    borderRadius: moderateScale(4),
+    marginHorizontal: moderateScale(12),
   },
   statBar: {
     height: '100%',
     backgroundColor: '#4CD964',
-    borderRadius: 4,
+    borderRadius: moderateScale(4),
   },
   statValue: {
-    width: 30,
-    fontSize: 14,
+    width: isTablet ? moderateScale(40) : moderateScale(30),
+    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
     fontWeight: 'bold',
     color: '#333',
+    textAlign: 'right',
   },
   physical: {
-    flexDirection: 'row',
+    flexDirection: isSmallDevice ? 'column' : 'row',
     justifyContent: 'space-around',
-    marginBottom: 24,
-    padding: 16,
+    marginBottom: verticalScale(24),
+    padding: moderateScale(16),
     backgroundColor: '#f9f9f9',
-    borderRadius: 12,
+    borderRadius: moderateScale(12),
   },
   physicalItem: {
     alignItems: 'center',
+    marginBottom: isSmallDevice ? verticalScale(12) : 0,
   },
   physicalLabel: {
-    fontSize: 14,
+    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
     color: '#666',
-    marginBottom: 4,
+    marginBottom: verticalScale(4),
   },
   physicalValue: {
-    fontSize: 16,
+    fontSize: isSmallDevice ? moderateScale(14) : moderateScale(16),
     fontWeight: 'bold',
     color: '#333',
   },
   abilities: {
-    marginBottom: 24,
+    marginBottom: verticalScale(24),
   },
   abilitiesList: {
     flexDirection: 'row',
@@ -272,14 +290,16 @@ const styles = StyleSheet.create({
   },
   ability: {
     backgroundColor: '#f0f0f0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateScale(6),
+    borderRadius: moderateScale(16),
+    marginRight: moderateScale(8),
+    marginBottom: moderateScale(8),
+    minWidth: isSmallDevice ? moderateScale(80) : moderateScale(90),
   },
   abilityText: {
-    fontSize: 12,
+    fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
     color: '#333',
+    textAlign: 'center',
   },
 });

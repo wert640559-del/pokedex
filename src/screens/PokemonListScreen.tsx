@@ -5,7 +5,8 @@ import {
   StyleSheet, 
   RefreshControl,
   TextInput, 
-  Text
+  Text,
+  TouchableOpacity
 } from 'react-native';
 import { usePokemon } from '../hooks/usePokemon';
 import { useNetwork } from '../hooks/useNetwork';
@@ -16,6 +17,7 @@ import { NetworkStatus } from '../components/NetworkStatus';
 import { StorageService } from '../services/storage';
 import { Pokemon } from '../types/pokemon';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+import { useResponsive } from '../hooks/useResponsive';
 
 interface PokemonListScreenProps {
   navigation: any;
@@ -24,6 +26,8 @@ interface PokemonListScreenProps {
 export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation }) => {
   const { pokemonList, loading, error, hasMore, loadMore, refresh } = usePokemon();
   const { isConnected } = useNetwork();
+  const { scale, moderateScale, isSmallDevice, isTablet } = useResponsive();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showFavorites, setShowFavorites] = useState(false);
@@ -75,6 +79,8 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
     }
   };
 
+  const styles = createStyles(scale, moderateScale, isSmallDevice, isTablet);
+
   if (error && pokemonList.length === 0) {
     return <ErrorMessage message={error} onRetry={refresh} />;
   }
@@ -85,12 +91,13 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
       
       <View style={styles.header}>
         <View style={styles.searchContainer}>
-          <FontAwesome6 name="search" size={16} color="#666" />
+          <FontAwesome6 name="magnifying-glass" size={moderateScale(16)} color="#666" iconStyle='solid'/>
           <TextInput
             style={styles.searchInput}
             placeholder="Search Pokémon..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            placeholderTextColor="#999"
           />
         </View>
         
@@ -100,7 +107,7 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
         >
           <FontAwesome6 
             name="heart" 
-            size={20} 
+            size={moderateScale(20)} 
             color={showFavorites ? "#FF6B6B" : "#666"} 
           />
         </TouchableOpacity>
@@ -114,11 +121,11 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
           <RefreshControl refreshing={loading} onRefresh={refresh} />
         }
         onEndReached={loadMorePokemon}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.3}
         ListEmptyComponent={
           showFavorites ? (
             <View style={styles.emptyState}>
-              <FontAwesome6 name="heart" size={48} color="#ccc" />
+              <FontAwesome6 name="heart" size={moderateScale(48)} color="#ccc" />
               <Text style={styles.emptyStateText}>No favorite Pokémon yet</Text>
             </View>
           ) : loading ? (
@@ -128,59 +135,73 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
           )
         }
         ListFooterComponent={
-          loading && pokemonList.length > 0 ? <LoadingIndicator size="small" text="Loading more..." /> : null
+          loading && pokemonList.length > 0 ? (
+            <LoadingIndicator size="small" text="Loading more..." />
+          ) : null
         }
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
       />
     </View>
   );
 };
 
-const TouchableOpacity = ({ style, onPress, children }: any) => (
-  <View style={style} onStartShouldSetResponder={() => true} onResponderRelease={onPress}>
-    {children}
-  </View>
-);
-
-const styles = StyleSheet.create({
+const createStyles = (
+  scale: (size: number) => number,
+  moderateScale: (size: number, factor?: number) => number,
+  isSmallDevice: boolean,
+  isTablet: boolean
+) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
-    padding: 16,
+    padding: moderateScale(16),
     backgroundColor: 'white',
+    alignItems: 'center',
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginRight: 12,
+    borderRadius: moderateScale(8),
+    paddingHorizontal: moderateScale(12),
+    marginRight: moderateScale(12),
+    height: moderateScale(44),
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
-    paddingVertical: 8,
-    fontSize: 16,
+    marginLeft: moderateScale(8),
+    paddingVertical: moderateScale(8),
+    fontSize: isSmallDevice ? moderateScale(14) : moderateScale(16),
+    color: '#333',
   },
   filterButton: {
-    padding: 12,
+    padding: moderateScale(12),
     backgroundColor: '#f0f0f0',
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
+    height: moderateScale(44),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterButtonActive: {
     backgroundColor: '#ffe6e6',
   },
   emptyState: {
     alignItems: 'center',
-    padding: 40,
+    padding: moderateScale(40),
   },
   emptyStateText: {
-    marginTop: 12,
-    fontSize: 16,
+    marginTop: moderateScale(12),
+    fontSize: isSmallDevice ? moderateScale(14) : moderateScale(16),
     color: '#666',
+    textAlign: 'center',
+  },
+  listContent: {
+    flexGrow: 1,
+    paddingBottom: moderateScale(20),
   },
 });
