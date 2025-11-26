@@ -15,6 +15,7 @@ import { Pokemon } from '../types/pokemon';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
 import { usePokemonByType } from '../hooks/usePokemonByType';
 import { useResponsive } from '../hooks/useResponsive';
+import { PokemonNavbar } from '../components/PokemonNavbar';
 
 interface PokemonListByTypeScreenProps {
   route: any;

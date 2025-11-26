@@ -17,7 +17,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size={size} color="#FF6B6B" />
+      <ActivityIndicator size={size} color="#DC0A2D" />
       <Text style={styles.text}>{text}</Text>
     </View>
   );
@@ -33,7 +33,8 @@ const createStyles = (moderateScale: (size: number, factor?: number) => number) 
     text: {
       marginTop: moderateScale(12),
       fontSize: moderateScale(16),
-      color: '#666',
+      color: '#1D2C5E',
       textAlign: 'center',
+      fontWeight: '600',
     },
   });

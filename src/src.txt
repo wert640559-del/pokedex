@@ -378,6 +378,158 @@ export const useResponsive = () => {
   };
 };
 
+--- FILE: ./components/ErrorMessage.tsx ---
+
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+import { useResponsive } from '../hooks/useResponsive';
+
+interface ErrorMessageProps {
+  message: string;
+  onRetry?: () => void;
+}
+
+export const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, onRetry }) => {
+  const { moderateScale } = useResponsive();
+  
+  const styles = createStyles(moderateScale);
+  
+  return (
+    <View style={styles.container}>
+      <FontAwesome6 name="triangle-exclamation" size={moderateScale(48)} color="#DC0A2D" iconStyle='solid'/>
+      <Text style={styles.message}>{message}</Text>
+      {onRetry && (
+        <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+          <Text style={styles.retryText}>Try Again</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
+  StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: moderateScale(20),
+  },
+  message: {
+    fontSize: moderateScale(16),
+    color: '#1D2C5E',
+    textAlign: 'center',
+    marginVertical: moderateScale(16),
+    fontWeight: '500',
+  },
+  retryButton: {
+    backgroundColor: '#DC0A2D',
+    paddingHorizontal: moderateScale(24),
+    paddingVertical: moderateScale(12),
+    borderRadius: moderateScale(25),
+    shadowColor: '#1D2C5E',
+    shadowOffset: { width: 0, height: moderateScale(2) },
+    shadowOpacity: 0.2,
+    shadowRadius: moderateScale(4),
+    elevation: 3,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: moderateScale(16),
+    fontWeight: 'bold',
+  },
+});
+
+--- FILE: ./components/NetworkStatus.tsx ---
+
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useNetwork } from '../hooks/useNetwork';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+import { useResponsive } from '../hooks/useResponsive';
+
+export const NetworkStatus: React.FC = () => {
+  const { isConnected } = useNetwork();
+  const { moderateScale } = useResponsive();
+
+  if (isConnected) return null;
+
+  const styles = createStyles(moderateScale);
+
+  return (
+    <View style={styles.container}>
+      <FontAwesome6 name="wifi" size={moderateScale(16)} color="white" iconStyle='solid'/>
+      <Text style={styles.text}>No internet connection</Text>
+    </View>
+  );
+};
+
+const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
+  StyleSheet.create({
+  container: {
+    backgroundColor: '#DC0A2D',
+    padding: moderateScale(10),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1D2C5E',
+    shadowOffset: { width: 0, height: moderateScale(2) },
+    shadowOpacity: 0.3,
+    shadowRadius: moderateScale(4),
+    elevation: 4,
+  },
+  text: {
+    color: 'white',
+    marginLeft: moderateScale(8),
+    fontSize: moderateScale(14),
+    fontWeight: 'bold',
+  },
+});
+
+--- FILE: ./components/LoadingIndicator.tsx ---
+
+import React from 'react';
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { useResponsive } from '../hooks/useResponsive';
+
+interface LoadingIndicatorProps {
+  size?: 'small' | 'large';
+  text?: string;
+}
+
+export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ 
+  size = 'large', 
+  text = 'Loading Pokémon...' 
+}) => {
+  const { moderateScale } = useResponsive();
+
+  const styles = createStyles(moderateScale);
+
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size={size} color="#DC0A2D" />
+      <Text style={styles.text}>{text}</Text>
+    </View>
+  );
+};
+
+const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
+  StyleSheet.create({
+    container: {
+      padding: moderateScale(20),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    text: {
+      marginTop: moderateScale(12),
+      fontSize: moderateScale(16),
+      color: '#1D2C5E',
+      textAlign: 'center',
+      fontWeight: '600',
+    },
+  });
+
 --- FILE: ./components/PokemonCard.tsx ---
 
 import React from 'react';
@@ -411,28 +563,38 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 
   const styles = createStyles(scale, verticalScale, moderateScale, width, isSmallDevice, isTablet);
 
+  // Get primary type for card accent
+  const primaryType = pokemon.types?.[0]?.type.name || 'normal';
+  const typeColor = getTypeColor(primaryType);
+
   return (
     <View style={styles.cardContainer}>
       <TouchableOpacity style={styles.card} onPress={() => onPress(pokemon)}>
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: imageUrl }} style={styles.image} />
+        {/* Card Header with Gradient */}
+        <View style={[styles.cardHeader, { backgroundColor: typeColor }]}>
+          <Text style={styles.cardId}>#{pokemon.id.toString().padStart(3, '0')}</Text>
           {onToggleFavorite && (
             <TouchableOpacity style={styles.favoriteButton} onPress={handleFavoritePress}>
               <FontAwesome6 
                 name={isFavorite ? "heart" : "heart-circle-plus"} 
-                size={moderateScale(16)} 
-                color={isFavorite ? "#FF6B6B" : "#666"} 
+                size={moderateScale(14)} 
+                color={isFavorite ? "#FFCB05" : "#FFFFFF"} 
                 iconStyle='solid'
               />
             </TouchableOpacity>
           )}
         </View>
         
+        {/* Pokemon Image */}
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: imageUrl }} style={styles.image} />
+        </View>
+        
+        {/* Card Info */}
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>
             {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
           </Text>
-          <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
           
           <View style={styles.types}>
             {pokemon.types?.map((typeInfo, index) => (
@@ -452,23 +614,23 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 const getTypeColor = (type: string): string => {
   const colors: { [key: string]: string } = {
     normal: '#A8A878',
-    fire: '#F08030',
-    water: '#6890F0',
-    electric: '#F8D030',
-    grass: '#78C850',
-    ice: '#98D8D8',
-    fighting: '#C03028',
-    poison: '#A040A0',
-    ground: '#E0C068',
-    flying: '#A890F0',
-    psychic: '#F85888',
-    bug: '#A8B820',
-    rock: '#B8A038',
-    ghost: '#705898',
-    dragon: '#7038F8',
-    dark: '#705848',
-    steel: '#B8B8D0',
-    fairy: '#EE99AC',
+    fire: '#EE8130',
+    water: '#6390F0',
+    electric: '#F7D02C',
+    grass: '#7AC74C',
+    ice: '#96D9D6',
+    fighting: '#C22E28',
+    poison: '#A33EA1',
+    ground: '#E2BF65',
+    flying: '#A98FF3',
+    psychic: '#F95587',
+    bug: '#A6B91A',
+    rock: '#B6A136',
+    ghost: '#735797',
+    dragon: '#6F35FC',
+    dark: '#705746',
+    steel: '#B7B7CE',
+    fairy: '#D685AD',
   };
   return colors[type] || '#68A090';
 };
@@ -481,34 +643,52 @@ const createStyles = (
   isSmallDevice: boolean,
   isTablet: boolean
 ) => {
-  // Hitung lebar card untuk 2 kolom dengan margin yang sama
-  const screenPadding = moderateScale(16); // Total padding kiri-kanan
-  const gap = moderateScale(8); // Jarak antara card
+  const screenPadding = moderateScale(16);
+  const gap = moderateScale(12);
   const cardWidth = (width - screenPadding * 2 - gap) / 2;
 
   return StyleSheet.create({
     cardContainer: {
       width: cardWidth,
       marginBottom: moderateScale(16),
-      marginHorizontal: moderateScale(8),
+      marginHorizontal: moderateScale(4),
     },
     card: {
-      backgroundColor: 'white',
-      borderRadius: moderateScale(12),
-      padding: moderateScale(12),
-      shadowColor: '#000',
+      backgroundColor: '#FFFFFF',
+      borderRadius: moderateScale(16),
+      shadowColor: '#1D2C5E',
       shadowOffset: { 
         width: 0, 
-        height: moderateScale(2) 
+        height: moderateScale(4) 
       },
-      shadowOpacity: 0.1,
-      shadowRadius: moderateScale(4),
-      elevation: 3,
+      shadowOpacity: 0.15,
+      shadowRadius: moderateScale(8),
+      elevation: 6,
       alignItems: 'center',
       flex: 1,
+      overflow: 'hidden',
+      borderWidth: 2,
+      borderColor: '#F8F8F8',
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      paddingHorizontal: moderateScale(12),
+      paddingVertical: moderateScale(6),
+      backgroundColor: '#DC0A2D',
+    },
+    cardId: {
+      fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
+      fontWeight: 'bold',
+      color: '#FFFFFF',
+    },
+    favoriteButton: {
+      padding: moderateScale(2),
     },
     imageContainer: {
-      position: 'relative',
+      padding: moderateScale(12),
       alignItems: 'center',
     },
     image: {
@@ -517,39 +697,19 @@ const createStyles = (
       height: isTablet ? moderateScale(100) : 
               isSmallDevice ? moderateScale(80) : moderateScale(90),
     },
-    favoriteButton: {
-      position: 'absolute',
-      top: moderateScale(-8),
-      right: moderateScale(-8),
-      backgroundColor: 'white',
-      borderRadius: moderateScale(15),
-      padding: moderateScale(4),
-      shadowColor: '#000',
-      shadowOffset: { 
-        width: 0, 
-        height: moderateScale(1) 
-      },
-      shadowOpacity: 0.2,
-      shadowRadius: moderateScale(2),
-      elevation: 2,
-    },
     info: {
       alignItems: 'center',
-      marginTop: verticalScale(8),
+      padding: moderateScale(12),
+      paddingTop: 0,
       width: '100%',
     },
     name: {
       fontSize: isTablet ? moderateScale(16) : 
                 isSmallDevice ? moderateScale(12) : moderateScale(14),
       fontWeight: 'bold',
-      color: '#333',
+      color: '#333333',
       textAlign: 'center',
-    },
-    id: {
-      fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
-      color: '#666',
       marginBottom: verticalScale(8),
-      textAlign: 'center',
     },
     types: {
       flexDirection: 'row',
@@ -557,383 +717,319 @@ const createStyles = (
       justifyContent: 'center',
     },
     type: {
-      paddingHorizontal: moderateScale(6),
-      paddingVertical: moderateScale(2),
-      borderRadius: moderateScale(8),
+      paddingHorizontal: moderateScale(8),
+      paddingVertical: moderateScale(4),
+      borderRadius: moderateScale(20),
       margin: moderateScale(2),
-      minWidth: moderateScale(40),
+      minWidth: moderateScale(50),
     },
     typeText: {
-      fontSize: isSmallDevice ? moderateScale(7) : moderateScale(8),
+      fontSize: isSmallDevice ? moderateScale(8) : moderateScale(9),
       fontWeight: 'bold',
-      color: 'white',
+      color: '#FFFFFF',
       textAlign: 'center',
     },
   });
 };
 
---- FILE: ./components/LoadingIndicator.tsx ---
+--- FILE: ./components/PokemonNavbar.tsx ---
 
+// UPDATE: ./components/PokemonNavbar.tsx
 import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet, Platform, StatusBar } from 'react-native';
 import { useResponsive } from '../hooks/useResponsive';
 
-interface LoadingIndicatorProps {
-  size?: 'small' | 'large';
-  text?: string;
+interface PokemonNavbarProps {
+  showLogo?: boolean;
 }
 
-export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ 
-  size = 'large', 
-  text = 'Loading Pokémon...' 
-}) => {
-  const { moderateScale } = useResponsive();
+export const PokemonNavbar: React.FC<PokemonNavbarProps> = ({ showLogo = true }) => {
+  const { moderateScale, isSmallDevice } = useResponsive();
 
-  const styles = createStyles(moderateScale);
+  const styles = createStyles(moderateScale, isSmallDevice);
+
+  if (!showLogo) return null;
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size={size} color="#FF6B6B" />
-      <Text style={styles.text}>{text}</Text>
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="#DC0A2D" 
+        translucent={false}
+      />
+      <View style={styles.navbar}>
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('../assets/images/pokedex.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+      </View>
     </View>
   );
 };
 
-const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
-  StyleSheet.create({
-    container: {
-      padding: moderateScale(20),
-      alignItems: 'center',
-      justifyContent: 'center',
+const createStyles = (
+  moderateScale: (size: number, factor?: number) => number,
+  isSmallDevice: boolean
+) => StyleSheet.create({
+  container: {
+    backgroundColor: '#DC0A2D',
+  },
+  navbar: {
+    backgroundColor: '#DC0A2D',
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(5),
+    paddingTop: Platform.OS === 'ios' ? moderateScale(50) : moderateScale(12),
+    borderBottomWidth: moderateScale(4),
+    borderBottomColor: '#1D2C5E',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(4),
     },
-    text: {
-      marginTop: moderateScale(12),
-      fontSize: moderateScale(16),
-      color: '#666',
-      textAlign: 'center',
-    },
-  });
+    shadowOpacity: 0.3,
+    shadowRadius: moderateScale(8),
+    elevation: 8,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: isSmallDevice ? moderateScale(120) : moderateScale(150),
+    height: isSmallDevice ? moderateScale(40) : moderateScale(50),
+  },
+});
 
---- FILE: ./components/ErrorMessage.tsx ---
+--- FILE: ./screens/ProfileScreen.tsx ---
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+import { PokemonNavbar } from '../components/PokemonNavbar';
 
-interface ErrorMessageProps {
-  message: string;
-  onRetry?: () => void;
-}
-
-export const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, onRetry }) => (
-  <View style={styles.container}>
-    <FontAwesome6 name="triangle-exclamation" size={48} color="#FF6B6B" iconStyle='solid'/>
-    <Text style={styles.message}>{message}</Text>
-    {onRetry && (
-      <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-        <Text style={styles.retryText}>Try Again</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-);
+export const ProfileScreen: React.FC = () => {
+  return (
+    <View>
+      <PokemonNavbar/>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <FontAwesome6 name="user" size={80} color="#FF6B6B" />
+        <Text style={styles.title}>Pokédex App</Text>
+        <Text style={styles.subtitle}>React Native Challenge</Text>
+      </View>
+      
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>App Information</Text>
+        <View style={styles.infoItem}>
+          <FontAwesome6 name="code" size={20} color="#666" iconStyle='solid'/>
+          <Text style={styles.infoText}>Built with React Native & TypeScript</Text>
+        </View>
+        <View style={styles.infoItem}>
+          <FontAwesome6 name="database" size={20} color="#666" iconStyle='solid'/>
+          <Text style={styles.infoText}>Data from PokeAPI</Text>
+        </View>
+        <View style={styles.infoItem}>
+          <FontAwesome6 name="heart" size={20} color="#666" iconStyle='solid'/>
+          <Text style={styles.infoText}>Favorites with AsyncStorage</Text>
+        </View>
+      </View>
+    </ScrollView>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: '#f5f5f5',
   },
-  message: {
+  header: {
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: 'white',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 16,
+  },
+  subtitle: {
     fontSize: 16,
     color: '#666',
-    textAlign: 'center',
-    marginVertical: 16,
+    marginTop: 4,
   },
-  retryButton: {
-    backgroundColor: '#FF6B6B',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+  section: {
+    backgroundColor: 'white',
+    padding: 16,
+    marginHorizontal: 16,
+    borderRadius: 12,
   },
-  retryText: {
-    color: 'white',
-    fontSize: 16,
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
   },
-});
-
---- FILE: ./components/NetworkStatus.tsx ---
-
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useNetwork } from '../hooks/useNetwork';
-import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
-
-export const NetworkStatus: React.FC = () => {
-  const { isConnected } = useNetwork();
-
-  if (isConnected) return null;
-
-  return (
-    <View style={styles.container}>
-      <FontAwesome6 name="wifi" size={16} color="white" iconStyle='solid'/>
-      <Text style={styles.text}>No internet connection</Text>
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FF6B6B',
-    padding: 8,
+  infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 8,
   },
-  text: {
-    color: 'white',
-    marginLeft: 8,
+  infoText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#666',
+    marginTop: 16,
+  },
+  emptySubtext: {
     fontSize: 14,
-    fontWeight: 'bold',
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
 
---- FILE: ./screens/PokemonListScreen.tsx ---
+--- FILE: ./screens/FavoritesScreen.tsx ---
 
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  FlatList, 
-  StyleSheet, 
-  RefreshControl,
-  TextInput, 
-  Text,
-  TouchableOpacity
-} from 'react-native';
-import { usePokemon } from '../hooks/usePokemon';
-import { useNetwork } from '../hooks/useNetwork';
+import { View, FlatList, Text, StyleSheet, RefreshControl } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
+import { StorageService } from '../services/storage';
+import { PokemonAPI } from '../services/api';
 import { PokemonCard } from '../components/PokemonCard';
 import { LoadingIndicator } from '../components/LoadingIndicator';
-import { ErrorMessage } from '../components/ErrorMessage';
-import { NetworkStatus } from '../components/NetworkStatus';
-import { StorageService } from '../services/storage';
 import { Pokemon } from '../types/pokemon';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
 import { useResponsive } from '../hooks/useResponsive';
+import { NetworkStatus } from '../components/NetworkStatus';
+import { ErrorMessage } from '../components/ErrorMessage';
+import { PokemonNavbar } from '../components/PokemonNavbar';
 
-interface PokemonListScreenProps {
-  navigation: any;
-}
-
-export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation }) => {
-  const { pokemonList, loading, error, hasMore, loadMore, refresh } = usePokemon();
-  const { isConnected } = useNetwork();
-  const { scale, moderateScale, isSmallDevice, isTablet } = useResponsive();
-  
-  const [searchQuery, setSearchQuery] = useState('');
-  const [favorites, setFavorites] = useState<number[]>([]);
-  const [showFavorites, setShowFavorites] = useState(false);
+export const FavoritesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const [favorites, setFavorites] = useState<Pokemon[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    loadFavorites();
-  }, []);
+  const [error, setError] = useState<string | null>(null);
+  const isFocused = useIsFocused();
+  const { moderateScale } = useResponsive();
 
   const loadFavorites = async () => {
-    const favs = await StorageService.getFavorites();
-    setFavorites(favs);
+    try {
+      setError(null);
+      const favoriteIds = await StorageService.getFavorites();
+      
+      if (favoriteIds.length === 0) {
+        setFavorites([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const favoritePokemon = await Promise.all(
+        favoriteIds.map(id => PokemonAPI.getPokemonDetail(id))
+      );
+      
+      setFavorites(favoritePokemon);
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      setError('Failed to load favorites');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const toggleFavorite = async (pokemonId: number) => {
-    if (favorites.includes(pokemonId)) {
-      await StorageService.removeFavorite(pokemonId);
-    } else {
-      await StorageService.addFavorite(pokemonId);
+  useEffect(() => {
+    if (isFocused) {
+      loadFavorites();
     }
+  }, [isFocused]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
     loadFavorites();
   };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await refresh();
-    setRefreshing(false);
-  };
-
-  const filteredPokemon = pokemonList.filter(pokemon => {
-    const matchesSearch = pokemon.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const isFavorite = favorites.includes(pokemon.id);
-    
-    if (showFavorites) {
-      return matchesSearch && isFavorite;
-    }
-    return matchesSearch;
-  });
 
   const handlePokemonPress = (pokemon: Pokemon) => {
     navigation.navigate('PokemonDetail', { pokemon });
   };
 
-  const renderPokemonItem = ({ item }: { item: Pokemon }) => (
-    <PokemonCard
-      pokemon={item}
-      onPress={handlePokemonPress}
-      isFavorite={favorites.includes(item.id)}
-      onToggleFavorite={toggleFavorite}
-    />
-  );
+  const styles = createStyles(moderateScale);
 
-  const loadMorePokemon = () => {
-    if (!loading && hasMore && isConnected && !showFavorites) {
-      loadMore();
-    }
-  };
+  if (loading) {
+    return <LoadingIndicator text="Loading favorites..." />;
+  }
 
-  const styles = createStyles(scale, moderateScale, isSmallDevice, isTablet);
-
-  if (error && pokemonList.length === 0) {
+  if (error && favorites.length === 0) {
     return (
       <View style={styles.container}>
         <NetworkStatus />
-        <ErrorMessage message={error} onRetry={refresh} />
+        <ErrorMessage message={error} onRetry={loadFavorites} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <PokemonNavbar/>
       <NetworkStatus />
       
-      <View style={styles.header}>
-        <View style={styles.searchContainer}>
-          <FontAwesome6 name="magnifying-glass" size={moderateScale(16)} color="#666" iconStyle='solid'/>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search Pokémon..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#999"
-          />
-        </View>
-        
-        <TouchableOpacity 
-          style={[styles.filterButton, showFavorites && styles.filterButtonActive]}
-          onPress={() => setShowFavorites(!showFavorites)}
-        >
-          <FontAwesome6 
-            name="heart" 
-            size={moderateScale(20)} 
-            color={showFavorites ? "#FF6B6B" : "#666"} 
-          />
-        </TouchableOpacity>
-      </View>
-
       <FlatList
-  data={filteredPokemon}
-  renderItem={renderPokemonItem}
-  keyExtractor={(item) => item.id.toString()}
-  refreshControl={
-    <RefreshControl 
-      refreshing={refreshing || loading} 
-      onRefresh={handleRefresh} 
-    />
-  }
-  onEndReached={loadMorePokemon}
-  onEndReachedThreshold={0.3}
-  numColumns={2}
-  columnWrapperStyle={styles.columnWrapper}
-  ListEmptyComponent={
-    showFavorites ? (
-      <View style={styles.emptyState}>
-        <FontAwesome6 name="heart" size={moderateScale(48)} color="#ccc" />
-        <Text style={styles.emptyStateText}>No favorite Pokémon yet</Text>
-        <Text style={styles.emptySubtext}>
-          Tap the heart icon on Pokémon to add them here
-        </Text>
-      </View>
-    ) : loading ? (
-      <LoadingIndicator />
-    ) : (
-      <View style={styles.emptyState}>
-        <FontAwesome6 name="magnifying-glass" size={moderateScale(48)} color="#ccc" iconStyle='solid'/>
-        <Text style={styles.emptyStateText}>No Pokémon found</Text>
-        <Text style={styles.emptySubtext}>
-          {searchQuery ? 'Try a different search term' : 'Check your internet connection'}
-        </Text>
-      </View>
-    )
-  }
-  ListFooterComponent={
-    loading && pokemonList.length > 0 && !showFavorites ? (
-      <LoadingIndicator size="small" text="Loading more Pokémon..." />
-    ) : null
-  }
-  contentContainerStyle={[
-    styles.listContent,
-    filteredPokemon.length === 0 && styles.emptyListContent
-  ]}
-  showsVerticalScrollIndicator={false}
-/>
+        data={favorites}
+        renderItem={({ item }) => (
+          <PokemonCard
+            pokemon={item}
+            onPress={handlePokemonPress}
+          />
+        )}
+        keyExtractor={(item) => item.id.toString()}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        numColumns={2}
+        columnWrapperStyle={styles.columnWrapper}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <FontAwesome6 name="heart" size={moderateScale(64)} color="#ccc" />
+            <Text style={styles.emptyText}>No favorites yet</Text>
+            <Text style={styles.emptySubtext}>
+              Tap the heart icon on Pokémon to add them here
+            </Text>
+          </View>
+        }
+        contentContainerStyle={[
+          styles.listContent,
+          favorites.length === 0 && styles.emptyListContent
+        ]}
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 };
 
-const createStyles = (
-  scale: (size: number) => number,
-  moderateScale: (size: number, factor?: number) => number,
-  isSmallDevice: boolean,
-  isTablet: boolean
-) => StyleSheet.create({
+const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
+  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  header: {
-    flexDirection: 'row',
-    padding: moderateScale(16),
-    backgroundColor: 'white',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: moderateScale(2),
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: moderateScale(4),
-    elevation: 3,
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: moderateScale(8),
-    paddingHorizontal: moderateScale(12),
-    marginRight: moderateScale(12),
-    height: moderateScale(44),
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: moderateScale(8),
-    paddingVertical: moderateScale(8),
-    fontSize: isSmallDevice ? moderateScale(14) : moderateScale(16),
-    color: '#333',
-  },
-  filterButton: {
-    padding: moderateScale(12),
-    backgroundColor: '#f0f0f0',
-    borderRadius: moderateScale(8),
-    height: moderateScale(44),
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: moderateScale(44),
-  },
-  filterButtonActive: {
-    backgroundColor: '#ffe6e6',
-  },
   columnWrapper: {
-    justifyContent: 'center',
-    paddingHorizontal: moderateScale(8),
+    justifyContent: 'space-between',
   },
   listContent: {
     flexGrow: 1,
@@ -946,27 +1042,26 @@ const createStyles = (
   },
   emptyState: {
     alignItems: 'center',
-    padding: moderateScale(40),
+    padding: moderateScale(32),
     flex: 1,
     justifyContent: 'center',
   },
-  emptyStateText: {
-    marginTop: moderateScale(16),
-    fontSize: isSmallDevice ? moderateScale(16) : moderateScale(18),
+  emptyText: {
+    fontSize: moderateScale(18),
     color: '#666',
-    textAlign: 'center',
+    marginTop: moderateScale(16),
     fontWeight: '600',
   },
   emptySubtext: {
-    marginTop: moderateScale(8),
-    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
+    fontSize: moderateScale(14),
     color: '#999',
+    marginTop: moderateScale(8),
     textAlign: 'center',
     lineHeight: moderateScale(20),
   },
 });
 
-export default PokemonListScreen;
+export default FavoritesScreen;
 
 --- FILE: ./screens/PokemonDetailScreen.tsx ---
 
@@ -983,6 +1078,7 @@ import { Pokemon } from '../types/pokemon';
 import { StorageService } from '../services/storage';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
 import { useResponsive } from '../hooks/useResponsive';
+import { PokemonNavbar } from '../components/PokemonNavbar'; // IMPORT BARU
 
 interface PokemonDetailScreenProps {
   route: any;
@@ -1022,100 +1118,38 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
   const styles = createStyles(scale, verticalScale, moderateScale, width, height, isSmallDevice, isTablet);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <FontAwesome6 name="arrow-left" size={moderateScale(24)} color="#333" iconStyle='solid'/>
-        </TouchableOpacity>
-        
-        <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
-          <FontAwesome6 
-            name={isFavorite ? "heart" : "heart-circle-plus"} 
-            size={moderateScale(28)} 
-            color={isFavorite ? "#FF6B6B" : "#333"} 
-            iconStyle='solid'
-          />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.imageSection}>
-        <Image source={{ uri: imageUrl }} style={styles.image} />
-        <Text style={styles.name}>
-          {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
-        </Text>
-        <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
-      </View>
-
-      <View style={styles.detailsSection}>
-        <View style={styles.types}>
-          {pokemon.types?.map((typeInfo, index) => (
-            <View key={index} style={[styles.type, { backgroundColor: getTypeColor(typeInfo.type.name) }]}>
-              <Text style={styles.typeText}>
-                {typeInfo.type.name.toUpperCase()}
-              </Text>
-            </View>
-          ))}
+    <View style={styles.container}>
+      <PokemonNavbar /> {/* TAMBAHKAN DI SINI */}
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <FontAwesome6 name="arrow-left" size={moderateScale(24)} color="#FFFFFF" iconStyle='solid'/>
+          </TouchableOpacity>
+          
+          <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
+            <FontAwesome6 
+              name={isFavorite ? "heart" : "heart-circle-plus"} 
+              size={moderateScale(28)} 
+              color={isFavorite ? "#FFCB05" : "#FFFFFF"} 
+              iconStyle='solid'
+            />
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.stats}>
-          <Text style={styles.sectionTitle}>Base Stats</Text>
-          {pokemon.stats?.map((stat, index) => (
-            <View key={index} style={styles.statRow}>
-              <Text style={styles.statName} numberOfLines={1}>
-                {stat.stat.name.replace('-', ' ').toUpperCase()}
-              </Text>
-              <View style={styles.statBarContainer}>
-                <View 
-                  style={[
-                    styles.statBar, 
-                    { width: `${Math.min(100, (stat.base_stat / 255) * 100)}%` }
-                  ]} 
-                />
-              </View>
-              <Text style={styles.statValue}>{stat.base_stat}</Text>
-            </View>
-          ))}
+        <View style={styles.imageSection}>
+          <Image source={{ uri: imageUrl }} style={styles.image} />
+          <Text style={styles.name}>
+            {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
+          </Text>
+          <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
         </View>
 
-        <View style={styles.physical}>
-          <View style={styles.physicalItem}>
-            <Text style={styles.physicalLabel}>Height</Text>
-            <Text style={styles.physicalValue}>{(pokemon.height / 10).toFixed(1)} m</Text>
-          </View>
-          <View style={styles.physicalItem}>
-            <Text style={styles.physicalLabel}>Weight</Text>
-            <Text style={styles.physicalValue}>{(pokemon.weight / 10).toFixed(1)} kg</Text>
-          </View>
+        <View style={styles.detailsSection}>
+          {/* ... rest of the detail content remains the same */}
         </View>
-
-        {pokemon.abilities && (
-          <View style={styles.abilities}>
-            <Text style={styles.sectionTitle}>Abilities</Text>
-            <View style={styles.abilitiesList}>
-              {pokemon.abilities.map((ability, index) => (
-                <View key={index} style={styles.ability}>
-                  <Text style={styles.abilityText} numberOfLines={1}>
-                    {ability.ability.name.replace('-', ' ').toUpperCase()}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
-};
-
-const getTypeColor = (type: string): string => {
-  const colors: { [key: string]: string } = {
-    normal: '#A8A878', fire: '#F08030', water: '#6890F0', electric: '#F8D030',
-    grass: '#78C850', ice: '#98D8D8', fighting: '#C03028', poison: '#A040A0',
-    ground: '#E0C068', flying: '#A890F0', psychic: '#F85888', bug: '#A8B820',
-    rock: '#B8A038', ghost: '#705898', dragon: '#7038F8', dark: '#705848',
-    steel: '#B8B8D0', fairy: '#EE99AC',
-  };
-  return colors[type] || '#68A090';
 };
 
 const createStyles = (
@@ -1131,12 +1165,15 @@ const createStyles = (
     flex: 1,
     backgroundColor: 'white',
   },
+  scrollView: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: moderateScale(16),
-    paddingTop: height * 0.06,
+    paddingTop: verticalScale(16),
     paddingBottom: verticalScale(16),
   },
   backButton: {
@@ -1295,6 +1332,7 @@ import { Pokemon } from '../types/pokemon';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
 import { usePokemonByType } from '../hooks/usePokemonByType';
 import { useResponsive } from '../hooks/useResponsive';
+import { PokemonNavbar } from '../components/PokemonNavbar';
 
 interface PokemonListByTypeScreenProps {
   route: any;
@@ -1488,115 +1526,181 @@ const createStyles = (
 
 export default PokemonListByTypeScreen;
 
---- FILE: ./screens/FavoritesScreen.tsx ---
+--- FILE: ./screens/PokemonListScreen.tsx ---
 
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, Text, StyleSheet, RefreshControl } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
-import { StorageService } from '../services/storage';
-import { PokemonAPI } from '../services/api';
+import { 
+  View, 
+  FlatList, 
+  StyleSheet, 
+  RefreshControl,
+  TextInput, 
+  Text,
+  TouchableOpacity
+} from 'react-native';
+import { usePokemon } from '../hooks/usePokemon';
+import { useNetwork } from '../hooks/useNetwork';
 import { PokemonCard } from '../components/PokemonCard';
 import { LoadingIndicator } from '../components/LoadingIndicator';
+import { ErrorMessage } from '../components/ErrorMessage';
+import { NetworkStatus } from '../components/NetworkStatus';
+import { PokemonNavbar } from '../components/PokemonNavbar'; // IMPORT BARU
+import { StorageService } from '../services/storage';
 import { Pokemon } from '../types/pokemon';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
 import { useResponsive } from '../hooks/useResponsive';
-import { NetworkStatus } from '../components/NetworkStatus';
-import { ErrorMessage } from '../components/ErrorMessage';
 
-export const FavoritesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const [favorites, setFavorites] = useState<Pokemon[]>([]);
-  const [loading, setLoading] = useState(true);
+interface PokemonListScreenProps {
+  navigation: any;
+}
+
+export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation }) => {
+  const { pokemonList, loading, error, hasMore, loadMore, refresh } = usePokemon();
+  const { isConnected } = useNetwork();
+  const { scale, moderateScale, isSmallDevice, isTablet } = useResponsive();
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [favorites, setFavorites] = useState<number[]>([]);
+  const [showFavorites, setShowFavorites] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const isFocused = useIsFocused();
-  const { moderateScale } = useResponsive();
-
-  const loadFavorites = async () => {
-    try {
-      setError(null);
-      const favoriteIds = await StorageService.getFavorites();
-      
-      if (favoriteIds.length === 0) {
-        setFavorites([]);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-
-      const favoritePokemon = await Promise.all(
-        favoriteIds.map(id => PokemonAPI.getPokemonDetail(id))
-      );
-      
-      setFavorites(favoritePokemon);
-    } catch (error) {
-      console.error('Error loading favorites:', error);
-      setError('Failed to load favorites');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
 
   useEffect(() => {
-    if (isFocused) {
-      loadFavorites();
-    }
-  }, [isFocused]);
+    loadFavorites();
+  }, []);
 
-  const onRefresh = () => {
-    setRefreshing(true);
+  const loadFavorites = async () => {
+    const favs = await StorageService.getFavorites();
+    setFavorites(favs);
+  };
+
+  const toggleFavorite = async (pokemonId: number) => {
+    if (favorites.includes(pokemonId)) {
+      await StorageService.removeFavorite(pokemonId);
+    } else {
+      await StorageService.addFavorite(pokemonId);
+    }
     loadFavorites();
   };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
+
+  const filteredPokemon = pokemonList.filter(pokemon => {
+    const matchesSearch = pokemon.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const isFavorite = favorites.includes(pokemon.id);
+    
+    if (showFavorites) {
+      return matchesSearch && isFavorite;
+    }
+    return matchesSearch;
+  });
 
   const handlePokemonPress = (pokemon: Pokemon) => {
     navigation.navigate('PokemonDetail', { pokemon });
   };
 
-  const styles = createStyles(moderateScale);
+  const renderPokemonItem = ({ item }: { item: Pokemon }) => (
+    <PokemonCard
+      pokemon={item}
+      onPress={handlePokemonPress}
+      isFavorite={favorites.includes(item.id)}
+      onToggleFavorite={toggleFavorite}
+    />
+  );
 
-  if (loading) {
-    return <LoadingIndicator text="Loading favorites..." />;
-  }
+  const loadMorePokemon = () => {
+    if (!loading && hasMore && isConnected && !showFavorites) {
+      loadMore();
+    }
+  };
 
-  if (error && favorites.length === 0) {
+  const styles = createStyles(scale, moderateScale, isSmallDevice, isTablet);
+
+  if (error && pokemonList.length === 0) {
     return (
       <View style={styles.container}>
+        <PokemonNavbar />
         <NetworkStatus />
-        <ErrorMessage message={error} onRetry={loadFavorites} />
+        <ErrorMessage message={error} onRetry={refresh} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <PokemonNavbar /> {/* TAMBAHKAN DI SINI */}
       <NetworkStatus />
       
-      <FlatList
-        data={favorites}
-        renderItem={({ item }) => (
-          <PokemonCard
-            pokemon={item}
-            onPress={handlePokemonPress}
+      <View style={styles.header}>
+        <View style={styles.searchContainer}>
+          <FontAwesome6 name="magnifying-glass" size={moderateScale(16)} color="#666" iconStyle='solid'/>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search Pokémon..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#999"
           />
-        )}
+        </View>
+        
+        <TouchableOpacity 
+          style={[styles.filterButton, showFavorites && styles.filterButtonActive]}
+          onPress={() => setShowFavorites(!showFavorites)}
+        >
+          <FontAwesome6 
+            name="heart" 
+            size={moderateScale(20)} 
+            color={showFavorites ? "#FFCB05" : "#FFFFFF"} 
+          />
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={filteredPokemon}
+        renderItem={renderPokemonItem}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing || loading} 
+            onRefresh={handleRefresh} 
+          />
         }
+        onEndReached={loadMorePokemon}
+        onEndReachedThreshold={0.3}
         numColumns={2}
         columnWrapperStyle={styles.columnWrapper}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <FontAwesome6 name="heart" size={moderateScale(64)} color="#ccc" />
-            <Text style={styles.emptyText}>No favorites yet</Text>
-            <Text style={styles.emptySubtext}>
-              Tap the heart icon on Pokémon to add them here
-            </Text>
-          </View>
+          showFavorites ? (
+            <View style={styles.emptyState}>
+              <FontAwesome6 name="heart" size={moderateScale(48)} color="#ccc" />
+              <Text style={styles.emptyStateText}>No favorite Pokémon yet</Text>
+              <Text style={styles.emptySubtext}>
+                Tap the heart icon on Pokémon to add them here
+              </Text>
+            </View>
+          ) : loading ? (
+            <LoadingIndicator />
+          ) : (
+            <View style={styles.emptyState}>
+              <FontAwesome6 name="magnifying-glass" size={moderateScale(48)} color="#ccc" iconStyle='solid'/>
+              <Text style={styles.emptyStateText}>No Pokémon found</Text>
+              <Text style={styles.emptySubtext}>
+                {searchQuery ? 'Try a different search term' : 'Check your internet connection'}
+              </Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          loading && pokemonList.length > 0 && !showFavorites ? (
+            <LoadingIndicator size="small" text="Loading more Pokémon..." />
+          ) : null
         }
         contentContainerStyle={[
           styles.listContent,
-          favorites.length === 0 && styles.emptyListContent
+          filteredPokemon.length === 0 && styles.emptyListContent
         ]}
         showsVerticalScrollIndicator={false}
       />
@@ -1604,14 +1708,71 @@ export const FavoritesScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   );
 };
 
-const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
-  StyleSheet.create({
+const createStyles = (
+  scale: (size: number) => number,
+  moderateScale: (size: number, factor?: number) => number,
+  isSmallDevice: boolean,
+  isTablet: boolean
+) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F8F8F8',
+  },
+  header: {
+    flexDirection: 'row',
+    padding: moderateScale(16),
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    shadowColor: '#1D2C5E',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(4),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(8),
+    elevation: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: '#FFCB05',
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    borderRadius: moderateScale(25),
+    paddingHorizontal: moderateScale(16),
+    marginRight: moderateScale(12),
+    height: moderateScale(44),
+    borderWidth: 2,
+    borderColor: '#1D2C5E',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: moderateScale(8),
+    paddingVertical: moderateScale(8),
+    fontSize: isSmallDevice ? moderateScale(14) : moderateScale(16),
+    color: '#333333',
+  },
+  filterButton: {
+    padding: moderateScale(12),
+    backgroundColor: '#1D2C5E',
+    borderRadius: moderateScale(25),
+    height: moderateScale(44),
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: moderateScale(44),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: moderateScale(2) },
+    shadowOpacity: 0.2,
+    shadowRadius: moderateScale(4),
+    elevation: 3,
+  },
+  filterButtonActive: {
+    backgroundColor: '#DC0A2D',
   },
   columnWrapper: {
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    paddingHorizontal: moderateScale(8),
   },
   listContent: {
     flexGrow: 1,
@@ -1624,123 +1785,27 @@ const createStyles = (moderateScale: (size: number, factor?: number) => number) 
   },
   emptyState: {
     alignItems: 'center',
-    padding: moderateScale(32),
+    padding: moderateScale(40),
     flex: 1,
     justifyContent: 'center',
   },
-  emptyText: {
-    fontSize: moderateScale(18),
-    color: '#666',
+  emptyStateText: {
     marginTop: moderateScale(16),
+    fontSize: isSmallDevice ? moderateScale(16) : moderateScale(18),
+    color: '#666',
+    textAlign: 'center',
     fontWeight: '600',
   },
   emptySubtext: {
-    fontSize: moderateScale(14),
-    color: '#999',
     marginTop: moderateScale(8),
+    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
+    color: '#999',
     textAlign: 'center',
     lineHeight: moderateScale(20),
   },
 });
 
-export default FavoritesScreen;
-
---- FILE: ./screens/ProfileScreen.tsx ---
-
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
-
-export const ProfileScreen: React.FC = () => {
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <FontAwesome6 name="user" size={80} color="#FF6B6B" />
-        <Text style={styles.title}>Pokédex App</Text>
-        <Text style={styles.subtitle}>React Native Challenge</Text>
-      </View>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App Information</Text>
-        <View style={styles.infoItem}>
-          <FontAwesome6 name="code" size={20} color="#666" iconStyle='solid'/>
-          <Text style={styles.infoText}>Built with React Native & TypeScript</Text>
-        </View>
-        <View style={styles.infoItem}>
-          <FontAwesome6 name="database" size={20} color="#666" iconStyle='solid'/>
-          <Text style={styles.infoText}>Data from PokeAPI</Text>
-        </View>
-        <View style={styles.infoItem}>
-          <FontAwesome6 name="heart" size={20} color="#666" iconStyle='solid'/>
-          <Text style={styles.infoText}>Favorites with AsyncStorage</Text>
-        </View>
-      </View>
-    </ScrollView>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    alignItems: 'center',
-    padding: 32,
-    backgroundColor: 'white',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 16,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 4,
-  },
-  section: {
-    backgroundColor: 'white',
-    padding: 16,
-    marginHorizontal: 16,
-    borderRadius: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  infoText: {
-    marginLeft: 12,
-    fontSize: 16,
-    color: '#333',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#666',
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-});
+export default PokemonListScreen;
 
 --- FILE: ./navigation/AppNavigator.tsx ---
 
@@ -1762,12 +1827,17 @@ const MainTabs: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#FF6B6B',
-        tabBarInactiveTintColor: '#666',
+        tabBarActiveTintColor: '#FFCB05',
+        tabBarInactiveTintColor: '#FFFFFF',
         tabBarStyle: {
-          backgroundColor: 'white',
-          borderTopWidth: 1,
-          borderTopColor: '#f0f0f0',
+          backgroundColor: '#1D2C5E',
+          borderTopWidth: 2,
+          borderTopColor: '#FFCB05',
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontWeight: 'bold',
+          fontSize: 12,
         },
         headerShown: false,
       }}
@@ -1872,6 +1942,8 @@ import { HomeTopTabParamList } from './types';
 import { PokemonListByTypeScreen } from '../screens/PokemonListByTypeScreen';
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useResponsive } from '../hooks/useResponsive';
+import { PokemonNavbar } from '../components/PokemonNavbar'; // IMPORT BARU
+import { View, StyleSheet } from 'react-native';
 
 const TopTab = createMaterialTopTabNavigator<HomeTopTabParamList>();
 
@@ -1897,58 +1969,73 @@ const pokemonTypes = [
 ];
 
 export const HomeTopTabsNavigator: React.FC = () => {
-  const { scale, isSmallDevice } = useResponsive();
+  const { scale, isSmallDevice, moderateScale } = useResponsive();
+
+  const styles = createStyles(moderateScale);
 
   return (
-    <TopTab.Navigator
-      screenOptions={{
-        tabBarScrollEnabled: true,
-        tabBarItemStyle: { 
-          width: isSmallDevice ? scale(80) : scale(100),
-          paddingHorizontal: scale(4),
-        },
-        tabBarLabelStyle: { 
-          fontSize: isSmallDevice ? scale(10) : scale(12), 
-          fontWeight: 'bold',
-          margin: 0,
-          textTransform: 'capitalize',
-        },
-        tabBarStyle: { 
-          backgroundColor: 'white',
-          elevation: 0,
-          shadowOpacity: 0,
-        },
-        tabBarIndicatorStyle: { 
-          backgroundColor: '#FF6B6B',
-          height: scale(3),
-        },
-        tabBarIconStyle: {
-          marginBottom: 0,
-        },
-      }}
-    >
-      {pokemonTypes.map((type) => (
-        <TopTab.Screen
-          key={type.name}
-          name={type.name as keyof HomeTopTabParamList}
-          component={PokemonListByTypeScreen}
-          initialParams={{ type: type.name === 'All' ? null : type.name.toLowerCase() }}
-          options={{
-            title: type.name,
-            tabBarIcon: ({ color }) => (
-              <FontAwesome6 
-                name={type.icon} 
-                size={isSmallDevice ? scale(14) : scale(16)} 
-                color={color} 
-                iconStyle='solid'
-              />
-            ),
-          }}
-        />
-      ))}
-    </TopTab.Navigator>
+    <View style={styles.container}>
+      <PokemonNavbar /> {/* NAVBAR DI ATAS TOP TABS */}
+      <TopTab.Navigator
+        screenOptions={{
+          tabBarScrollEnabled: true,
+          tabBarItemStyle: { 
+            width: isSmallDevice ? scale(80) : scale(100),
+            paddingHorizontal: scale(4),
+          },
+          tabBarLabelStyle: { 
+            fontSize: isSmallDevice ? scale(10) : scale(12), 
+            fontWeight: 'bold',
+            margin: 0,
+            textTransform: 'capitalize',
+            color: '#FFFFFF',
+          },
+          tabBarStyle: { 
+            backgroundColor: '#1D2C5E',
+            elevation: 0,
+            shadowOpacity: 0,
+          },
+          tabBarIndicatorStyle: { 
+            backgroundColor: '#FFCB05',
+            height: scale(4),
+            borderRadius: scale(2),
+          },
+          tabBarIconStyle: {
+            marginBottom: 0,
+          },
+        }}
+      >
+        {pokemonTypes.map((type) => (
+          <TopTab.Screen
+            key={type.name}
+            name={type.name as keyof HomeTopTabParamList}
+            component={PokemonListByTypeScreen}
+            initialParams={{ type: type.name === 'All' ? null : type.name.toLowerCase() }}
+            options={{
+              title: type.name,
+              tabBarIcon: ({ color }) => (
+                <FontAwesome6 
+                  name={type.icon} 
+                  size={isSmallDevice ? scale(14) : scale(16)} 
+                  color='#FFCB05'
+                  iconStyle='solid'
+                />
+              ),
+            }}
+          />
+        ))}
+      </TopTab.Navigator>
+    </View>
   );
 };
+
+const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
+  StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F8F8',
+  },
+});
 
 --- FILE: ./src.txt ---
 

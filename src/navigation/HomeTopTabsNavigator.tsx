@@ -4,80 +4,106 @@ import { HomeTopTabParamList } from './types';
 import { PokemonListByTypeScreen } from '../screens/PokemonListByTypeScreen';
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useResponsive } from '../hooks/useResponsive';
+import { PokemonNavbar } from '../components/PokemonNavbar';
+import { View, StyleSheet } from 'react-native';
 
 const TopTab = createMaterialTopTabNavigator<HomeTopTabParamList>();
 
 const pokemonTypes = [
-  { name: 'All', icon: 'list' as const },
-  { name: 'Fire', icon: 'fire' as const },
-  { name: 'Water', icon: 'droplet' as const },
-  { name: 'Grass', icon: 'leaf' as const },
-  { name: 'Electric', icon: 'bolt' as const },
-  { name: 'Ice', icon: 'snowflake' as const },
-  { name: 'Fighting', icon: 'hand-fist' as const },
-  { name: 'Poison', icon: 'skull' as const },
-  { name: 'Ground', icon: 'mountain' as const },
-  { name: 'Flying', icon: 'dove' as const },
-  { name: 'Psychic', icon: 'brain' as const },
-  { name: 'Bug', icon: 'bug' as const },
-  { name: 'Rock', icon: 'mountain' as const },
-  { name: 'Ghost', icon: 'ghost' as const },
-  { name: 'Dragon', icon: 'dragon' as const },
-  { name: 'Dark', icon: 'moon' as const },
-  { name: 'Steel', icon: 'shield' as const },
-  { name: 'Fairy', icon: 'wand-magic-sparkles' as const },
+  { name: 'All', icon: 'list', color: '#FFCB05' },
+  { name: 'Fire', icon: 'fire', color: '#EE8130' },
+  { name: 'Water', icon: 'droplet', color: '#6390F0' },
+  { name: 'Grass', icon: 'leaf', color: '#7AC74C' },
+  { name: 'Electric', icon: 'bolt', color: '#F7D02C' },
+  { name: 'Ice', icon: 'snowflake', color: '#96D9D6' },
+  { name: 'Fighting', icon: 'hand-fist', color: '#C22E28' },
+  { name: 'Poison', icon: 'skull', color: '#A33EA1' },
+  { name: 'Ground', icon: 'mountain', color: '#E2BF65' },
+  { name: 'Flying', icon: 'dove', color: '#A98FF3' },
+  { name: 'Psychic', icon: 'brain', color: '#F95587' },
+  { name: 'Bug', icon: 'bug', color: '#A6B91A' },
+  { name: 'Rock', icon: 'mountain', color: '#B6A136' },
+  { name: 'Ghost', icon: 'ghost', color: '#735797' },
+  { name: 'Dragon', icon: 'dragon', color: '#6F35FC' },
+  { name: 'Dark', icon: 'moon', color: '#705746' },
+  { name: 'Steel', icon: 'shield', color: '#B7B7CE' },
+  { name: 'Fairy', icon: 'wand-magic-sparkles', color: '#D685AD' },
 ];
 
 export const HomeTopTabsNavigator: React.FC = () => {
-  const { scale, isSmallDevice } = useResponsive();
+  const { scale, isSmallDevice, moderateScale } = useResponsive();
+
+  const styles = createStyles(moderateScale);
 
   return (
-    <TopTab.Navigator
-      screenOptions={{
-        tabBarScrollEnabled: true,
-        tabBarItemStyle: { 
-          width: isSmallDevice ? scale(80) : scale(100),
-          paddingHorizontal: scale(4),
-        },
-        tabBarLabelStyle: { 
-          fontSize: isSmallDevice ? scale(10) : scale(12), 
-          fontWeight: 'bold',
-          margin: 0,
-          textTransform: 'capitalize',
-        },
-        tabBarStyle: { 
-          backgroundColor: 'white',
-          elevation: 0,
-          shadowOpacity: 0,
-        },
-        tabBarIndicatorStyle: { 
-          backgroundColor: '#FF6B6B',
-          height: scale(3),
-        },
-        tabBarIconStyle: {
-          marginBottom: 0,
-        },
-      }}
-    >
-      {pokemonTypes.map((type) => (
-        <TopTab.Screen
-          key={type.name}
-          name={type.name as keyof HomeTopTabParamList}
-          component={PokemonListByTypeScreen}
-          initialParams={{ type: type.name === 'All' ? null : type.name.toLowerCase() }}
-          options={{
-            title: type.name,
-            tabBarIcon: ({ color }) => (
-              <FontAwesome6 
-                name={type.icon} 
-                size={isSmallDevice ? scale(14) : scale(16)} 
-                color={color} 
-                iconStyle='solid'
-              />
-            ),
-          }}
-        />
-      ))}
-    </TopTab.Navigator>
+    <View style={styles.container}>
+      <PokemonNavbar />
+      <TopTab.Navigator
+        screenOptions={{
+          tabBarScrollEnabled: true,
+          tabBarItemStyle: { 
+            width: isSmallDevice ? scale(80) : scale(100),
+            paddingHorizontal: scale(4),
+          },
+          tabBarLabelStyle: { 
+            fontSize: isSmallDevice ? scale(10) : scale(12), 
+            fontWeight: 'bold',
+            margin: 0,
+            textTransform: 'capitalize',
+            color: '#FFFFFF',
+          },
+          tabBarStyle: { 
+            backgroundColor: '#1D2C5E',
+            elevation: 0,
+            shadowOpacity: 0,
+          },
+          tabBarIndicatorStyle: ({ route }) => ({
+            backgroundColor: getTypeColor(route.name),
+            height: scale(4),
+            borderRadius: scale(2),
+          }),
+          tabBarIconStyle: {
+            marginBottom: 0,
+          },
+        }}
+      >
+        {pokemonTypes.map((type) => (
+          <TopTab.Screen
+            key={type.name}
+            name={type.name as keyof HomeTopTabParamList}
+            component={PokemonListByTypeScreen}
+            initialParams={{ type: type.name === 'All' ? null : type.name.toLowerCase() }}
+            options={{
+              title: type.name,
+              tabBarIcon: ({ focused }) => {
+                const typeColor = getTypeColor(type.name);
+                return (
+                  <FontAwesome6 
+                    name={type.icon} 
+                    size={isSmallDevice ? scale(14) : scale(16)} 
+                    color={focused ? typeColor : '#CCCCCC'}
+                    iconStyle='solid'
+                  />
+                );
+              },
+            }}
+          />
+        ))}
+      </TopTab.Navigator>
+    </View>
   );
 };
+
+// Helper function to get type color
+const getTypeColor = (typeName: string): string => {
+  const type = pokemonTypes.find(t => t.name === typeName);
+  return type?.color || '#FFCB05';
+};
+
+const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
+  StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F8F8',
+  },
+});

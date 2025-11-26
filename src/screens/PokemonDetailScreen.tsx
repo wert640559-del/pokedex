@@ -11,6 +11,7 @@ import { Pokemon } from '../types/pokemon';
 import { StorageService } from '../services/storage';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
 import { useResponsive } from '../hooks/useResponsive';
+import { PokemonNavbar } from '../components/PokemonNavbar';
 
 interface PokemonDetailScreenProps {
   route: any;
@@ -47,103 +48,191 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
     || pokemon.sprites?.front_default 
     || 'https://via.placeholder.com/200x200/ccc/fff?text=Pokemon';
 
-  const styles = createStyles(scale, verticalScale, moderateScale, width, height, isSmallDevice, isTablet);
+  // Get primary type for background theme
+  const primaryType = pokemon.types?.[0]?.type.name || 'normal';
+  const primaryColor = getTypeColor(primaryType);
+  const lightColor = getLightTypeColor(primaryType);
+
+  const styles = createStyles(
+    scale, verticalScale, moderateScale, width, height, isSmallDevice, isTablet, primaryColor, lightColor
+  );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <FontAwesome6 name="arrow-left" size={moderateScale(24)} color="#333" iconStyle='solid'/>
-        </TouchableOpacity>
-        
-        <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
-          <FontAwesome6 
-            name={isFavorite ? "heart" : "heart-circle-plus"} 
-            size={moderateScale(28)} 
-            color={isFavorite ? "#FF6B6B" : "#333"} 
-            iconStyle='solid'
-          />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.imageSection}>
-        <Image source={{ uri: imageUrl }} style={styles.image} />
-        <Text style={styles.name}>
-          {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
-        </Text>
-        <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
-      </View>
-
-      <View style={styles.detailsSection}>
-        <View style={styles.types}>
-          {pokemon.types?.map((typeInfo, index) => (
-            <View key={index} style={[styles.type, { backgroundColor: getTypeColor(typeInfo.type.name) }]}>
-              <Text style={styles.typeText}>
-                {typeInfo.type.name.toUpperCase()}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.stats}>
-          <Text style={styles.sectionTitle}>Base Stats</Text>
-          {pokemon.stats?.map((stat, index) => (
-            <View key={index} style={styles.statRow}>
-              <Text style={styles.statName} numberOfLines={1}>
-                {stat.stat.name.replace('-', ' ').toUpperCase()}
-              </Text>
-              <View style={styles.statBarContainer}>
-                <View 
-                  style={[
-                    styles.statBar, 
-                    { width: `${Math.min(100, (stat.base_stat / 255) * 100)}%` }
-                  ]} 
-                />
-              </View>
-              <Text style={styles.statValue}>{stat.base_stat}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.physical}>
-          <View style={styles.physicalItem}>
-            <Text style={styles.physicalLabel}>Height</Text>
-            <Text style={styles.physicalValue}>{(pokemon.height / 10).toFixed(1)} m</Text>
+    <View style={styles.container}>
+      <PokemonNavbar/>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header with Pokemon-themed background */}
+        <View style={styles.headerBackground}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <FontAwesome6 name="arrow-left" size={moderateScale(24)} color="#FFFFFF" iconStyle='solid'/>
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
+              <FontAwesome6 
+                name={isFavorite ? "heart" : "heart-circle-plus"} 
+                size={moderateScale(28)} 
+                color={isFavorite ? "#FFCB05" : "#FFFFFF"} 
+                iconStyle='solid'
+              />
+            </TouchableOpacity>
           </View>
-          <View style={styles.physicalItem}>
-            <Text style={styles.physicalLabel}>Weight</Text>
-            <Text style={styles.physicalValue}>{(pokemon.weight / 10).toFixed(1)} kg</Text>
+
+          <View style={styles.imageSection}>
+            <View style={styles.imageContainer}>
+              <Image source={{ uri: imageUrl }} style={styles.image} />
+            </View>
+            <Text style={styles.name}>
+              {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
+            </Text>
+            <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
           </View>
         </View>
 
-        {pokemon.abilities && (
-          <View style={styles.abilities}>
-            <Text style={styles.sectionTitle}>Abilities</Text>
-            <View style={styles.abilitiesList}>
-              {pokemon.abilities.map((ability, index) => (
-                <View key={index} style={styles.ability}>
-                  <Text style={styles.abilityText} numberOfLines={1}>
-                    {ability.ability.name.replace('-', ' ').toUpperCase()}
+        {/* Details Section */}
+        <View style={styles.detailsSection}>
+          {/* Types */}
+          <View style={styles.typesSection}>
+            <Text style={styles.sectionTitle}>Type</Text>
+            <View style={styles.types}>
+              {pokemon.types?.map((typeInfo, index) => (
+                <View key={index} style={[styles.type, { backgroundColor: getTypeColor(typeInfo.type.name) }]}>
+                  <Text style={styles.typeText}>
+                    {typeInfo.type.name.toUpperCase()}
                   </Text>
                 </View>
               ))}
             </View>
           </View>
-        )}
-      </View>
-    </ScrollView>
+
+          {/* Physical Characteristics */}
+          <View style={styles.physicalSection}>
+            <Text style={styles.sectionTitle}>Physical Characteristics</Text>
+            <View style={styles.physical}>
+              <View style={styles.physicalItem}>
+                <View style={styles.physicalIcon}>
+                  <FontAwesome6 name="ruler-vertical" size={moderateScale(20)} color="#1D2C5E" />
+                </View>
+                <View style={styles.physicalInfo}>
+                  <Text style={styles.physicalLabel}>Height</Text>
+                  <Text style={styles.physicalValue}>{(pokemon.height / 10).toFixed(1)} m</Text>
+                </View>
+              </View>
+              <View style={styles.physicalItem}>
+                <View style={styles.physicalIcon}>
+                  <FontAwesome6 name="weight-scale" size={moderateScale(20)} color="#1D2C5E" />
+                </View>
+                <View style={styles.physicalInfo}>
+                  <Text style={styles.physicalLabel}>Weight</Text>
+                  <Text style={styles.physicalValue}>{(pokemon.weight / 10).toFixed(1)} kg</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Base Stats */}
+          <View style={styles.statsSection}>
+            <Text style={styles.sectionTitle}>Base Stats</Text>
+            <View style={styles.stats}>
+              {pokemon.stats?.map((stat, index) => (
+                <View key={index} style={styles.statRow}>
+                  <View style={styles.statInfo}>
+                    <Text style={styles.statName} numberOfLines={1}>
+                      {stat.stat.name.replace('-', ' ').toUpperCase()}
+                    </Text>
+                    <Text style={styles.statValue}>{stat.base_stat}</Text>
+                  </View>
+                  <View style={styles.statBarContainer}>
+                    <View 
+                      style={[
+                        styles.statBar, 
+                        { 
+                          width: `${Math.min(100, (stat.base_stat / 255) * 100)}%`,
+                          backgroundColor: getStatColor(stat.base_stat)
+                        }
+                      ]} 
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Abilities */}
+          {pokemon.abilities && (
+            <View style={styles.abilitiesSection}>
+              <Text style={styles.sectionTitle}>Abilities</Text>
+              <View style={styles.abilitiesList}>
+                {pokemon.abilities.map((ability, index) => (
+                  <View key={index} style={styles.ability}>
+                    <FontAwesome6 name="sparkles" size={moderateScale(14)} color="#1D2C5E" />
+                    <Text style={styles.abilityText} numberOfLines={1}>
+                      {ability.ability.name.replace('-', ' ').toUpperCase()}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 const getTypeColor = (type: string): string => {
   const colors: { [key: string]: string } = {
-    normal: '#A8A878', fire: '#F08030', water: '#6890F0', electric: '#F8D030',
-    grass: '#78C850', ice: '#98D8D8', fighting: '#C03028', poison: '#A040A0',
-    ground: '#E0C068', flying: '#A890F0', psychic: '#F85888', bug: '#A8B820',
-    rock: '#B8A038', ghost: '#705898', dragon: '#7038F8', dark: '#705848',
-    steel: '#B8B8D0', fairy: '#EE99AC',
+    normal: '#A8A878',
+    fire: '#EE8130',
+    water: '#6390F0',
+    electric: '#F7D02C',
+    grass: '#7AC74C',
+    ice: '#96D9D6',
+    fighting: '#C22E28',
+    poison: '#A33EA1',
+    ground: '#E2BF65',
+    flying: '#A98FF3',
+    psychic: '#F95587',
+    bug: '#A6B91A',
+    rock: '#B6A136',
+    ghost: '#735797',
+    dragon: '#6F35FC',
+    dark: '#705746',
+    steel: '#B7B7CE',
+    fairy: '#D685AD',
   };
   return colors[type] || '#68A090';
+};
+
+const getLightTypeColor = (type: string): string => {
+  const colors: { [key: string]: string } = {
+    normal: '#C6C6A7',
+    fire: '#F5AC78',
+    water: '#9DB7F5',
+    electric: '#FAE078',
+    grass: '#A7DB8D',
+    ice: '#BCE6E6',
+    fighting: '#D67873',
+    poison: '#C183C1',
+    ground: '#EBD69D',
+    flying: '#C6B7F5',
+    psychic: '#FA92B2',
+    bug: '#C6D16E',
+    rock: '#D1C17D',
+    ghost: '#A292BC',
+    dragon: '#A27DFA',
+    dark: '#A29288',
+    steel: '#D1D1E0',
+    fairy: '#F4BDC9',
+  };
+  return colors[type] || '#8BB094';
+};
+
+const getStatColor = (value: number): string => {
+  if (value >= 100) return '#4CD964'; // Green for high stats
+  if (value >= 70) return '#FFCC00';   // Yellow for medium-high stats
+  if (value >= 40) return '#FF9500';   // Orange for medium stats
+  return '#FF3B30';                    // Red for low stats
 };
 
 const createStyles = (
@@ -153,58 +242,121 @@ const createStyles = (
   width: number,
   height: number,
   isSmallDevice: boolean,
-  isTablet: boolean
+  isTablet: boolean,
+  primaryColor: string,
+  lightColor: string
 ) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#F8F8F8',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  headerBackground: {
+    backgroundColor: primaryColor,
+    borderBottomLeftRadius: moderateScale(30),
+    borderBottomRightRadius: moderateScale(30),
+    paddingBottom: verticalScale(30),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(4),
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: moderateScale(8),
+    elevation: 8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: moderateScale(16),
-    paddingTop: height * 0.06,
+    paddingTop: verticalScale(12),
     paddingBottom: verticalScale(16),
   },
   backButton: {
     padding: moderateScale(8),
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: moderateScale(20),
   },
   favoriteButton: {
     padding: moderateScale(8),
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: moderateScale(20),
   },
   imageSection: {
     alignItems: 'center',
     padding: moderateScale(20),
   },
+  imageContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: moderateScale(100),
+    padding: moderateScale(20),
+    marginBottom: verticalScale(16),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(4),
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: moderateScale(6),
+    elevation: 6,
+  },
   image: {
-    width: isTablet ? width * 0.4 : width * 0.5,
-    height: isTablet ? width * 0.4 : width * 0.5,
-    maxWidth: 300,
-    maxHeight: 300,
+    width: isTablet ? width * 0.3 : width * 0.4,
+    height: isTablet ? width * 0.3 : width * 0.4,
+    maxWidth: 250,
+    maxHeight: 250,
   },
   name: {
-    fontSize: isTablet ? moderateScale(36) : 
-              isSmallDevice ? moderateScale(24) : moderateScale(32),
+    fontSize: isTablet ? moderateScale(32) : 
+              isSmallDevice ? moderateScale(22) : moderateScale(28),
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: verticalScale(16),
+    color: '#FFFFFF',
+    marginTop: verticalScale(8),
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
   id: {
-    fontSize: isTablet ? moderateScale(22) : 
-              isSmallDevice ? moderateScale(16) : moderateScale(18),
-    color: '#666',
+    fontSize: isTablet ? moderateScale(20) : 
+              isSmallDevice ? moderateScale(14) : moderateScale(18),
+    color: '#FFFFFF',
     marginTop: verticalScale(4),
+    fontWeight: '600',
+    opacity: 0.9,
   },
   detailsSection: {
     padding: moderateScale(20),
+    marginTop: verticalScale(-20),
+  },
+  typesSection: {
+    backgroundColor: '#FFFFFF',
+    padding: moderateScale(20),
+    borderRadius: moderateScale(20),
+    marginBottom: moderateScale(16),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 4,
+  },
+  sectionTitle: {
+    fontSize: isTablet ? moderateScale(20) : 
+              isSmallDevice ? moderateScale(16) : moderateScale(18),
+    fontWeight: 'bold',
+    color: '#1D2C5E',
+    marginBottom: verticalScale(12),
   },
   types: {
     flexDirection: 'row',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    marginBottom: verticalScale(24),
   },
   type: {
     paddingHorizontal: moderateScale(16),
@@ -212,94 +364,160 @@ const createStyles = (
     borderRadius: moderateScale(20),
     margin: moderateScale(4),
     minWidth: isSmallDevice ? moderateScale(70) : moderateScale(80),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: moderateScale(3),
+    elevation: 3,
   },
   typeText: {
     fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
     fontWeight: 'bold',
-    color: 'white',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
-  sectionTitle: {
-    fontSize: isTablet ? moderateScale(24) : 
-              isSmallDevice ? moderateScale(18) : moderateScale(20),
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: verticalScale(16),
-  },
-  stats: {
-    marginBottom: verticalScale(24),
-  },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: verticalScale(12),
-  },
-  statName: {
-    width: isTablet ? moderateScale(120) : 
-           isSmallDevice ? moderateScale(80) : moderateScale(100),
-    fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
-    color: '#666',
-  },
-  statBarContainer: {
-    flex: 1,
-    height: moderateScale(8),
-    backgroundColor: '#f0f0f0',
-    borderRadius: moderateScale(4),
-    marginHorizontal: moderateScale(12),
-  },
-  statBar: {
-    height: '100%',
-    backgroundColor: '#4CD964',
-    borderRadius: moderateScale(4),
-  },
-  statValue: {
-    width: isTablet ? moderateScale(40) : moderateScale(30),
-    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'right',
+  physicalSection: {
+    backgroundColor: '#FFFFFF',
+    padding: moderateScale(20),
+    borderRadius: moderateScale(20),
+    marginBottom: moderateScale(16),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 4,
   },
   physical: {
     flexDirection: isSmallDevice ? 'column' : 'row',
     justifyContent: 'space-around',
-    marginBottom: verticalScale(24),
-    padding: moderateScale(16),
-    backgroundColor: '#f9f9f9',
-    borderRadius: moderateScale(12),
   },
   physicalItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: isSmallDevice ? verticalScale(12) : 0,
+    marginBottom: isSmallDevice ? verticalScale(16) : 0,
+    padding: moderateScale(12),
+    backgroundColor: '#F8F8F8',
+    borderRadius: moderateScale(12),
+    minWidth: isSmallDevice ? '100%' : '45%',
+  },
+  physicalIcon: {
+    backgroundColor: '#FFCB05',
+    padding: moderateScale(8),
+    borderRadius: moderateScale(10),
+    marginRight: moderateScale(12),
+  },
+  physicalInfo: {
+    flex: 1,
   },
   physicalLabel: {
     fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
     color: '#666',
     marginBottom: verticalScale(4),
+    fontWeight: '500',
   },
   physicalValue: {
     fontSize: isSmallDevice ? moderateScale(14) : moderateScale(16),
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1D2C5E',
   },
-  abilities: {
-    marginBottom: verticalScale(24),
+  statsSection: {
+    backgroundColor: '#FFFFFF',
+    padding: moderateScale(20),
+    borderRadius: moderateScale(20),
+    marginBottom: moderateScale(16),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 4,
+  },
+  stats: {
+    // Stats container
+  },
+  statRow: {
+    marginBottom: verticalScale(12),
+  },
+  statInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: verticalScale(6),
+  },
+  statName: {
+    fontSize: isSmallDevice ? moderateScale(11) : moderateScale(13),
+    color: '#666',
+    fontWeight: '500',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
+    fontWeight: 'bold',
+    color: '#1D2C5E',
+    width: moderateScale(30),
+    textAlign: 'right',
+  },
+  statBarContainer: {
+    height: moderateScale(8),
+    backgroundColor: '#F0F0F0',
+    borderRadius: moderateScale(4),
+    overflow: 'hidden',
+  },
+  statBar: {
+    height: '100%',
+    borderRadius: moderateScale(4),
+  },
+  abilitiesSection: {
+    backgroundColor: '#FFFFFF',
+    padding: moderateScale(20),
+    borderRadius: moderateScale(20),
+    marginBottom: moderateScale(16),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 4,
   },
   abilitiesList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   ability: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: moderateScale(6),
-    borderRadius: moderateScale(16),
-    marginRight: moderateScale(8),
-    marginBottom: moderateScale(8),
-    minWidth: isSmallDevice ? moderateScale(80) : moderateScale(90),
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(20),
+    margin: moderateScale(4),
+    minWidth: isSmallDevice ? moderateScale(100) : moderateScale(120),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(1),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(2),
+    elevation: 2,
   },
   abilityText: {
     fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
-    color: '#333',
-    textAlign: 'center',
+    color: '#1D2C5E',
+    fontWeight: '500',
+    marginLeft: moderateScale(8),
   },
 });
+
+export default PokemonDetailScreen;

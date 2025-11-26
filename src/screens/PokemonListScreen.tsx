@@ -14,6 +14,7 @@ import { PokemonCard } from '../components/PokemonCard';
 import { LoadingIndicator } from '../components/LoadingIndicator';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { NetworkStatus } from '../components/NetworkStatus';
+import { PokemonNavbar } from '../components/PokemonNavbar'; // IMPORT BARU
 import { StorageService } from '../services/storage';
 import { Pokemon } from '../types/pokemon';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
@@ -91,6 +92,7 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
   if (error && pokemonList.length === 0) {
     return (
       <View style={styles.container}>
+        <PokemonNavbar />
         <NetworkStatus />
         <ErrorMessage message={error} onRetry={refresh} />
       </View>
@@ -99,6 +101,7 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
 
   return (
     <View style={styles.container}>
+      <PokemonNavbar /> {/* TAMBAHKAN DI SINI */}
       <NetworkStatus />
       
       <View style={styles.header}>
@@ -120,57 +123,57 @@ export const PokemonListScreen: React.FC<PokemonListScreenProps> = ({ navigation
           <FontAwesome6 
             name="heart" 
             size={moderateScale(20)} 
-            color={showFavorites ? "#FF6B6B" : "#666"} 
+            color={showFavorites ? "#FFCB05" : "#FFFFFF"} 
           />
         </TouchableOpacity>
       </View>
 
       <FlatList
-  data={filteredPokemon}
-  renderItem={renderPokemonItem}
-  keyExtractor={(item) => item.id.toString()}
-  refreshControl={
-    <RefreshControl 
-      refreshing={refreshing || loading} 
-      onRefresh={handleRefresh} 
-    />
-  }
-  onEndReached={loadMorePokemon}
-  onEndReachedThreshold={0.3}
-  numColumns={2}
-  columnWrapperStyle={styles.columnWrapper}
-  ListEmptyComponent={
-    showFavorites ? (
-      <View style={styles.emptyState}>
-        <FontAwesome6 name="heart" size={moderateScale(48)} color="#ccc" />
-        <Text style={styles.emptyStateText}>No favorite Pokémon yet</Text>
-        <Text style={styles.emptySubtext}>
-          Tap the heart icon on Pokémon to add them here
-        </Text>
-      </View>
-    ) : loading ? (
-      <LoadingIndicator />
-    ) : (
-      <View style={styles.emptyState}>
-        <FontAwesome6 name="magnifying-glass" size={moderateScale(48)} color="#ccc" iconStyle='solid'/>
-        <Text style={styles.emptyStateText}>No Pokémon found</Text>
-        <Text style={styles.emptySubtext}>
-          {searchQuery ? 'Try a different search term' : 'Check your internet connection'}
-        </Text>
-      </View>
-    )
-  }
-  ListFooterComponent={
-    loading && pokemonList.length > 0 && !showFavorites ? (
-      <LoadingIndicator size="small" text="Loading more Pokémon..." />
-    ) : null
-  }
-  contentContainerStyle={[
-    styles.listContent,
-    filteredPokemon.length === 0 && styles.emptyListContent
-  ]}
-  showsVerticalScrollIndicator={false}
-/>
+        data={filteredPokemon}
+        renderItem={renderPokemonItem}
+        keyExtractor={(item) => item.id.toString()}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing || loading} 
+            onRefresh={handleRefresh} 
+          />
+        }
+        onEndReached={loadMorePokemon}
+        onEndReachedThreshold={0.3}
+        numColumns={2}
+        columnWrapperStyle={styles.columnWrapper}
+        ListEmptyComponent={
+          showFavorites ? (
+            <View style={styles.emptyState}>
+              <FontAwesome6 name="heart" size={moderateScale(48)} color="#ccc" />
+              <Text style={styles.emptyStateText}>No favorite Pokémon yet</Text>
+              <Text style={styles.emptySubtext}>
+                Tap the heart icon on Pokémon to add them here
+              </Text>
+            </View>
+          ) : loading ? (
+            <LoadingIndicator />
+          ) : (
+            <View style={styles.emptyState}>
+              <FontAwesome6 name="magnifying-glass" size={moderateScale(48)} color="#ccc" iconStyle='solid'/>
+              <Text style={styles.emptyStateText}>No Pokémon found</Text>
+              <Text style={styles.emptySubtext}>
+                {searchQuery ? 'Try a different search term' : 'Check your internet connection'}
+              </Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          loading && pokemonList.length > 0 && !showFavorites ? (
+            <LoadingIndicator size="small" text="Loading more Pokémon..." />
+          ) : null
+        }
+        contentContainerStyle={[
+          styles.listContent,
+          filteredPokemon.length === 0 && styles.emptyListContent
+        ]}
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 };
@@ -183,50 +186,59 @@ const createStyles = (
 ) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F8F8F8',
   },
   header: {
     flexDirection: 'row',
     padding: moderateScale(16),
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#1D2C5E',
     shadowOffset: {
       width: 0,
-      height: moderateScale(2),
+      height: moderateScale(4),
     },
     shadowOpacity: 0.1,
-    shadowRadius: moderateScale(4),
-    elevation: 3,
+    shadowRadius: moderateScale(8),
+    elevation: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: '#FFCB05',
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: moderateScale(8),
-    paddingHorizontal: moderateScale(12),
+    backgroundColor: '#F8F8F8',
+    borderRadius: moderateScale(25),
+    paddingHorizontal: moderateScale(16),
     marginRight: moderateScale(12),
     height: moderateScale(44),
+    borderWidth: 2,
+    borderColor: '#1D2C5E',
   },
   searchInput: {
     flex: 1,
     marginLeft: moderateScale(8),
     paddingVertical: moderateScale(8),
     fontSize: isSmallDevice ? moderateScale(14) : moderateScale(16),
-    color: '#333',
+    color: '#333333',
   },
   filterButton: {
     padding: moderateScale(12),
-    backgroundColor: '#f0f0f0',
-    borderRadius: moderateScale(8),
+    backgroundColor: '#1D2C5E',
+    borderRadius: moderateScale(25),
     height: moderateScale(44),
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: moderateScale(44),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: moderateScale(2) },
+    shadowOpacity: 0.2,
+    shadowRadius: moderateScale(4),
+    elevation: 3,
   },
   filterButtonActive: {
-    backgroundColor: '#ffe6e6',
+    backgroundColor: '#DC0A2D',
   },
   columnWrapper: {
     justifyContent: 'center',

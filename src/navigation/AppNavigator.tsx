@@ -16,12 +16,17 @@ const MainTabs: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#FF6B6B',
-        tabBarInactiveTintColor: '#666',
+        tabBarActiveTintColor: '#FFCB05',
+        tabBarInactiveTintColor: '#FFFFFF',
         tabBarStyle: {
-          backgroundColor: 'white',
-          borderTopWidth: 1,
-          borderTopColor: '#f0f0f0',
+          backgroundColor: '#1D2C5E',
+          borderTopWidth: 2,
+          borderTopColor: '#FFCB05',
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontWeight: 'bold',
+          fontSize: 12,
         },
         headerShown: false,
       }}

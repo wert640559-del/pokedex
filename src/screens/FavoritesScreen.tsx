@@ -10,6 +10,7 @@ import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
 import { useResponsive } from '../hooks/useResponsive';
 import { NetworkStatus } from '../components/NetworkStatus';
 import { ErrorMessage } from '../components/ErrorMessage';
+import { PokemonNavbar } from '../components/PokemonNavbar';
 
 export const FavoritesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [favorites, setFavorites] = useState<Pokemon[]>([]);
@@ -77,6 +78,7 @@ export const FavoritesScreen: React.FC<{ navigation: any }> = ({ navigation }) =
 
   return (
     <View style={styles.container}>
+      <PokemonNavbar/>
       <NetworkStatus />
       
       <FlatList

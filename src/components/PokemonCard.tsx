@@ -29,28 +29,38 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 
   const styles = createStyles(scale, verticalScale, moderateScale, width, isSmallDevice, isTablet);
 
+  // Get primary type for card accent
+  const primaryType = pokemon.types?.[0]?.type.name || 'normal';
+  const typeColor = getTypeColor(primaryType);
+
   return (
     <View style={styles.cardContainer}>
       <TouchableOpacity style={styles.card} onPress={() => onPress(pokemon)}>
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: imageUrl }} style={styles.image} />
+        {/* Card Header with Gradient */}
+        <View style={[styles.cardHeader, { backgroundColor: typeColor }]}>
+          <Text style={styles.cardId}>#{pokemon.id.toString().padStart(3, '0')}</Text>
           {onToggleFavorite && (
             <TouchableOpacity style={styles.favoriteButton} onPress={handleFavoritePress}>
               <FontAwesome6 
                 name={isFavorite ? "heart" : "heart-circle-plus"} 
-                size={moderateScale(16)} 
-                color={isFavorite ? "#FF6B6B" : "#666"} 
+                size={moderateScale(14)} 
+                color={isFavorite ? "#FFCB05" : "#FFFFFF"} 
                 iconStyle='solid'
               />
             </TouchableOpacity>
           )}
         </View>
         
+        {/* Pokemon Image */}
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: imageUrl }} style={styles.image} />
+        </View>
+        
+        {/* Card Info */}
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>
             {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
           </Text>
-          <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
           
           <View style={styles.types}>
             {pokemon.types?.map((typeInfo, index) => (
@@ -70,23 +80,23 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 const getTypeColor = (type: string): string => {
   const colors: { [key: string]: string } = {
     normal: '#A8A878',
-    fire: '#F08030',
-    water: '#6890F0',
-    electric: '#F8D030',
-    grass: '#78C850',
-    ice: '#98D8D8',
-    fighting: '#C03028',
-    poison: '#A040A0',
-    ground: '#E0C068',
-    flying: '#A890F0',
-    psychic: '#F85888',
-    bug: '#A8B820',
-    rock: '#B8A038',
-    ghost: '#705898',
-    dragon: '#7038F8',
-    dark: '#705848',
-    steel: '#B8B8D0',
-    fairy: '#EE99AC',
+    fire: '#EE8130',
+    water: '#6390F0',
+    electric: '#F7D02C',
+    grass: '#7AC74C',
+    ice: '#96D9D6',
+    fighting: '#C22E28',
+    poison: '#A33EA1',
+    ground: '#E2BF65',
+    flying: '#A98FF3',
+    psychic: '#F95587',
+    bug: '#A6B91A',
+    rock: '#B6A136',
+    ghost: '#735797',
+    dragon: '#6F35FC',
+    dark: '#705746',
+    steel: '#B7B7CE',
+    fairy: '#D685AD',
   };
   return colors[type] || '#68A090';
 };
@@ -99,34 +109,52 @@ const createStyles = (
   isSmallDevice: boolean,
   isTablet: boolean
 ) => {
-  // Hitung lebar card untuk 2 kolom dengan margin yang sama
-  const screenPadding = moderateScale(16); // Total padding kiri-kanan
-  const gap = moderateScale(8); // Jarak antara card
+  const screenPadding = moderateScale(16);
+  const gap = moderateScale(12);
   const cardWidth = (width - screenPadding * 2 - gap) / 2;
 
   return StyleSheet.create({
     cardContainer: {
       width: cardWidth,
       marginBottom: moderateScale(16),
-      marginHorizontal: moderateScale(8),
+      marginHorizontal: moderateScale(4),
     },
     card: {
-      backgroundColor: 'white',
-      borderRadius: moderateScale(12),
-      padding: moderateScale(12),
-      shadowColor: '#000',
+      backgroundColor: '#FFFFFF',
+      borderRadius: moderateScale(16),
+      shadowColor: '#1D2C5E',
       shadowOffset: { 
         width: 0, 
-        height: moderateScale(2) 
+        height: moderateScale(4) 
       },
-      shadowOpacity: 0.1,
-      shadowRadius: moderateScale(4),
-      elevation: 3,
+      shadowOpacity: 0.15,
+      shadowRadius: moderateScale(8),
+      elevation: 6,
       alignItems: 'center',
       flex: 1,
+      overflow: 'hidden',
+      borderWidth: 2,
+      borderColor: '#F8F8F8',
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      paddingHorizontal: moderateScale(12),
+      paddingVertical: moderateScale(6),
+      backgroundColor: '#DC0A2D',
+    },
+    cardId: {
+      fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
+      fontWeight: 'bold',
+      color: '#FFFFFF',
+    },
+    favoriteButton: {
+      padding: moderateScale(2),
     },
     imageContainer: {
-      position: 'relative',
+      padding: moderateScale(12),
       alignItems: 'center',
     },
     image: {
@@ -135,39 +163,19 @@ const createStyles = (
       height: isTablet ? moderateScale(100) : 
               isSmallDevice ? moderateScale(80) : moderateScale(90),
     },
-    favoriteButton: {
-      position: 'absolute',
-      top: moderateScale(-8),
-      right: moderateScale(-8),
-      backgroundColor: 'white',
-      borderRadius: moderateScale(15),
-      padding: moderateScale(4),
-      shadowColor: '#000',
-      shadowOffset: { 
-        width: 0, 
-        height: moderateScale(1) 
-      },
-      shadowOpacity: 0.2,
-      shadowRadius: moderateScale(2),
-      elevation: 2,
-    },
     info: {
       alignItems: 'center',
-      marginTop: verticalScale(8),
+      padding: moderateScale(12),
+      paddingTop: 0,
       width: '100%',
     },
     name: {
       fontSize: isTablet ? moderateScale(16) : 
                 isSmallDevice ? moderateScale(12) : moderateScale(14),
       fontWeight: 'bold',
-      color: '#333',
+      color: '#333333',
       textAlign: 'center',
-    },
-    id: {
-      fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
-      color: '#666',
       marginBottom: verticalScale(8),
-      textAlign: 'center',
     },
     types: {
       flexDirection: 'row',
@@ -175,16 +183,16 @@ const createStyles = (
       justifyContent: 'center',
     },
     type: {
-      paddingHorizontal: moderateScale(6),
-      paddingVertical: moderateScale(2),
-      borderRadius: moderateScale(8),
+      paddingHorizontal: moderateScale(8),
+      paddingVertical: moderateScale(4),
+      borderRadius: moderateScale(20),
       margin: moderateScale(2),
-      minWidth: moderateScale(40),
+      minWidth: moderateScale(50),
     },
     typeText: {
-      fontSize: isSmallDevice ? moderateScale(7) : moderateScale(8),
+      fontSize: isSmallDevice ? moderateScale(8) : moderateScale(9),
       fontWeight: 'bold',
-      color: 'white',
+      color: '#FFFFFF',
       textAlign: 'center',
     },
   });
