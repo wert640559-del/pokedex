@@ -1,10 +1,13 @@
+// FILE: ./screens/PokemonListByTypeScreen.tsx
+
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
   FlatList, 
   StyleSheet, 
   TextInput, 
-  RefreshControl 
+  RefreshControl,
+  Text 
 } from 'react-native';
 import { PokemonCard } from '../components/PokemonCard';
 import { LoadingIndicator } from '../components/LoadingIndicator';
@@ -24,10 +27,25 @@ export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = (
   navigation 
 }) => {
   const { type } = route.params;
-  const { pokemonList, loading, error, refresh } = usePokemonByType(type);
+  const { 
+    pokemonList, 
+    loading, 
+    loadingMore, 
+    error, 
+    hasMore, 
+    loadMore, 
+    refresh 
+  } = usePokemonByType(type);
+  
   const [searchQuery, setSearchQuery] = useState('');
   
-  console.log(`Screen ${type}:`, { loading, error, count: pokemonList.length }); // Debug
+  console.log(`Screen ${type}:`, { 
+    loading, 
+    error, 
+    count: pokemonList.length,
+    hasMore,
+    loadingMore 
+  });
 
   const filteredPokemon = pokemonList.filter(pokemon =>
     pokemon.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -35,6 +53,12 @@ export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = (
 
   const handlePokemonPress = (pokemon: Pokemon) => {
     navigation.navigate('PokemonDetail', { pokemon });
+  };
+
+  const handleLoadMore = () => {
+    if (!type) { // Hanya load more untuk tab "All"
+      loadMore();
+    }
   };
 
   if (error && pokemonList.length === 0) {
@@ -67,12 +91,21 @@ export const PokemonListByTypeScreen: React.FC<PokemonListByTypeScreenProps> = (
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={refresh} />
         }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
         ListEmptyComponent={
           loading ? (
             <LoadingIndicator />
           ) : (
             <ErrorMessage message={`No ${type || ''} Pokémon found`} />
           )
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <LoadingIndicator size="small" text="Loading more Pokémon..." />
+          ) : !type && hasMore ? (
+            <Text style={styles.loadMoreText}>Scroll down to load more</Text>
+          ) : null
         }
       />
     </View>
@@ -102,5 +135,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     paddingVertical: 10,
     fontSize: 16,
+  },
+  loadMoreText: {
+    textAlign: 'center',
+    padding: 16,
+    color: '#666',
+    fontSize: 14,
   },
 });
