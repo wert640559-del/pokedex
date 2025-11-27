@@ -441,6 +441,49 @@ const createStyles = (moderateScale: (size: number, factor?: number) => number) 
   },
 });
 
+--- FILE: ./components/LoadingIndicator.tsx ---
+
+import React from 'react';
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { useResponsive } from '../hooks/useResponsive';
+
+interface LoadingIndicatorProps {
+  size?: 'small' | 'large';
+  text?: string;
+}
+
+export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ 
+  size = 'large', 
+  text = 'Loading Pokémon...' 
+}) => {
+  const { moderateScale } = useResponsive();
+
+  const styles = createStyles(moderateScale);
+
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size={size} color="#DC0A2D" />
+      <Text style={styles.text}>{text}</Text>
+    </View>
+  );
+};
+
+const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
+  StyleSheet.create({
+    container: {
+      padding: moderateScale(20),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    text: {
+      marginTop: moderateScale(12),
+      fontSize: moderateScale(16),
+      color: '#1D2C5E',
+      textAlign: 'center',
+      fontWeight: '600',
+    },
+  });
+
 --- FILE: ./components/NetworkStatus.tsx ---
 
 import React from 'react';
@@ -486,49 +529,6 @@ const createStyles = (moderateScale: (size: number, factor?: number) => number) 
     fontWeight: 'bold',
   },
 });
-
---- FILE: ./components/LoadingIndicator.tsx ---
-
-import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { useResponsive } from '../hooks/useResponsive';
-
-interface LoadingIndicatorProps {
-  size?: 'small' | 'large';
-  text?: string;
-}
-
-export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ 
-  size = 'large', 
-  text = 'Loading Pokémon...' 
-}) => {
-  const { moderateScale } = useResponsive();
-
-  const styles = createStyles(moderateScale);
-
-  return (
-    <View style={styles.container}>
-      <ActivityIndicator size={size} color="#DC0A2D" />
-      <Text style={styles.text}>{text}</Text>
-    </View>
-  );
-};
-
-const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
-  StyleSheet.create({
-    container: {
-      padding: moderateScale(20),
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    text: {
-      marginTop: moderateScale(12),
-      fontSize: moderateScale(16),
-      color: '#1D2C5E',
-      textAlign: 'center',
-      fontWeight: '600',
-    },
-  });
 
 --- FILE: ./components/PokemonCard.tsx ---
 
@@ -803,107 +803,6 @@ const createStyles = (
   },
 });
 
---- FILE: ./screens/ProfileScreen.tsx ---
-
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
-import { PokemonNavbar } from '../components/PokemonNavbar';
-
-export const ProfileScreen: React.FC = () => {
-  return (
-    <View>
-      <PokemonNavbar/>
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <FontAwesome6 name="user" size={80} color="#FF6B6B" />
-        <Text style={styles.title}>Pokédex App</Text>
-        <Text style={styles.subtitle}>React Native Challenge</Text>
-      </View>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App Information</Text>
-        <View style={styles.infoItem}>
-          <FontAwesome6 name="code" size={20} color="#666" iconStyle='solid'/>
-          <Text style={styles.infoText}>Built with React Native & TypeScript</Text>
-        </View>
-        <View style={styles.infoItem}>
-          <FontAwesome6 name="database" size={20} color="#666" iconStyle='solid'/>
-          <Text style={styles.infoText}>Data from PokeAPI</Text>
-        </View>
-        <View style={styles.infoItem}>
-          <FontAwesome6 name="heart" size={20} color="#666" iconStyle='solid'/>
-          <Text style={styles.infoText}>Favorites with AsyncStorage</Text>
-        </View>
-      </View>
-    </ScrollView>
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    alignItems: 'center',
-    padding: 32,
-    backgroundColor: 'white',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 16,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 4,
-  },
-  section: {
-    backgroundColor: 'white',
-    padding: 16,
-    marginHorizontal: 16,
-    borderRadius: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  infoText: {
-    marginLeft: 12,
-    fontSize: 16,
-    color: '#333',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#666',
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-});
-
 --- FILE: ./screens/FavoritesScreen.tsx ---
 
 import React, { useState, useEffect } from 'react';
@@ -1078,7 +977,7 @@ import { Pokemon } from '../types/pokemon';
 import { StorageService } from '../services/storage';
 import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
 import { useResponsive } from '../hooks/useResponsive';
-import { PokemonNavbar } from '../components/PokemonNavbar'; // IMPORT BARU
+import { PokemonNavbar } from '../components/PokemonNavbar';
 
 interface PokemonDetailScreenProps {
   route: any;
@@ -1115,41 +1014,191 @@ export const PokemonDetailScreen: React.FC<PokemonDetailScreenProps> = ({
     || pokemon.sprites?.front_default 
     || 'https://via.placeholder.com/200x200/ccc/fff?text=Pokemon';
 
-  const styles = createStyles(scale, verticalScale, moderateScale, width, height, isSmallDevice, isTablet);
+  // Get primary type for background theme
+  const primaryType = pokemon.types?.[0]?.type.name || 'normal';
+  const primaryColor = getTypeColor(primaryType);
+  const lightColor = getLightTypeColor(primaryType);
+
+  const styles = createStyles(
+    scale, verticalScale, moderateScale, width, height, isSmallDevice, isTablet, primaryColor, lightColor
+  );
 
   return (
     <View style={styles.container}>
-      <PokemonNavbar /> {/* TAMBAHKAN DI SINI */}
+      <PokemonNavbar/>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <FontAwesome6 name="arrow-left" size={moderateScale(24)} color="#FFFFFF" iconStyle='solid'/>
-          </TouchableOpacity>
-          
-          <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
-            <FontAwesome6 
-              name={isFavorite ? "heart" : "heart-circle-plus"} 
-              size={moderateScale(28)} 
-              color={isFavorite ? "#FFCB05" : "#FFFFFF"} 
-              iconStyle='solid'
-            />
-          </TouchableOpacity>
+        {/* Header with Pokemon-themed background */}
+        <View style={styles.headerBackground}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <FontAwesome6 name="arrow-left" size={moderateScale(24)} color="#FFFFFF" iconStyle='solid'/>
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
+              <FontAwesome6 
+                name={isFavorite ? "heart" : "heart-circle-plus"} 
+                size={moderateScale(28)} 
+                color={isFavorite ? "#FFCB05" : "#FFFFFF"} 
+                iconStyle='solid'
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.imageSection}>
+            <View style={styles.imageContainer}>
+              <Image source={{ uri: imageUrl }} style={styles.image} />
+            </View>
+            <Text style={styles.name}>
+              {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
+            </Text>
+            <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
+          </View>
         </View>
 
-        <View style={styles.imageSection}>
-          <Image source={{ uri: imageUrl }} style={styles.image} />
-          <Text style={styles.name}>
-            {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
-          </Text>
-          <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
-        </View>
-
+        {/* Details Section */}
         <View style={styles.detailsSection}>
-          {/* ... rest of the detail content remains the same */}
+          {/* Types */}
+          <View style={styles.typesSection}>
+            <Text style={styles.sectionTitle}>Type</Text>
+            <View style={styles.types}>
+              {pokemon.types?.map((typeInfo, index) => (
+                <View key={index} style={[styles.type, { backgroundColor: getTypeColor(typeInfo.type.name) }]}>
+                  <Text style={styles.typeText}>
+                    {typeInfo.type.name.toUpperCase()}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Physical Characteristics */}
+          <View style={styles.physicalSection}>
+            <Text style={styles.sectionTitle}>Physical Characteristics</Text>
+            <View style={styles.physical}>
+              <View style={styles.physicalItem}>
+                <View style={styles.physicalIcon}>
+                  <FontAwesome6 name="ruler-vertical" size={moderateScale(20)} color="#1D2C5E" iconStyle='solid'/>
+                </View>
+                <View style={styles.physicalInfo}>
+                  <Text style={styles.physicalLabel}>Height</Text>
+                  <Text style={styles.physicalValue}>{(pokemon.height / 10).toFixed(1)} m</Text>
+                </View>
+              </View>
+              <View style={styles.physicalItem}>
+                <View style={styles.physicalIcon}>
+                  <FontAwesome6 name="weight-scale" size={moderateScale(20)} color="#1D2C5E" iconStyle='solid'/>
+                </View>
+                <View style={styles.physicalInfo}>
+                  <Text style={styles.physicalLabel}>Weight</Text>
+                  <Text style={styles.physicalValue}>{(pokemon.weight / 10).toFixed(1)} kg</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Base Stats */}
+          <View style={styles.statsSection}>
+            <Text style={styles.sectionTitle}>Base Stats</Text>
+            <View style={styles.stats}>
+              {pokemon.stats?.map((stat, index) => (
+                <View key={index} style={styles.statRow}>
+                  <View style={styles.statInfo}>
+                    <Text style={styles.statName} numberOfLines={1}>
+                      {stat.stat.name.replace('-', ' ').toUpperCase()}
+                    </Text>
+                    <Text style={styles.statValue}>{stat.base_stat}</Text>
+                  </View>
+                  <View style={styles.statBarContainer}>
+                    <View 
+                      style={[
+                        styles.statBar, 
+                        { 
+                          width: `${Math.min(100, (stat.base_stat / 255) * 100)}%`,
+                          backgroundColor: getStatColor(stat.base_stat)
+                        }
+                      ]} 
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Abilities */}
+          {pokemon.abilities && (
+            <View style={styles.abilitiesSection}>
+              <Text style={styles.sectionTitle}>Abilities</Text>
+              <View style={styles.abilitiesList}>
+                {pokemon.abilities.map((ability, index) => (
+                  <View key={index} style={styles.ability}>
+                    <FontAwesome6 name="sparkles" size={moderateScale(14)} color="#1D2C5E" />
+                    <Text style={styles.abilityText} numberOfLines={1}>
+                      {ability.ability.name.replace('-', ' ').toUpperCase()}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
   );
+};
+
+const getTypeColor = (type: string): string => {
+  const colors: { [key: string]: string } = {
+    normal: '#A8A878',
+    fire: '#EE8130',
+    water: '#6390F0',
+    electric: '#F7D02C',
+    grass: '#7AC74C',
+    ice: '#96D9D6',
+    fighting: '#C22E28',
+    poison: '#A33EA1',
+    ground: '#E2BF65',
+    flying: '#A98FF3',
+    psychic: '#F95587',
+    bug: '#A6B91A',
+    rock: '#B6A136',
+    ghost: '#735797',
+    dragon: '#6F35FC',
+    dark: '#705746',
+    steel: '#B7B7CE',
+    fairy: '#D685AD',
+  };
+  return colors[type] || '#68A090';
+};
+
+const getLightTypeColor = (type: string): string => {
+  const colors: { [key: string]: string } = {
+    normal: '#C6C6A7',
+    fire: '#F5AC78',
+    water: '#9DB7F5',
+    electric: '#FAE078',
+    grass: '#A7DB8D',
+    ice: '#BCE6E6',
+    fighting: '#D67873',
+    poison: '#C183C1',
+    ground: '#EBD69D',
+    flying: '#C6B7F5',
+    psychic: '#FA92B2',
+    bug: '#C6D16E',
+    rock: '#D1C17D',
+    ghost: '#A292BC',
+    dragon: '#A27DFA',
+    dark: '#A29288',
+    steel: '#D1D1E0',
+    fairy: '#F4BDC9',
+  };
+  return colors[type] || '#8BB094';
+};
+
+const getStatColor = (value: number): string => {
+  if (value >= 100) return '#4CD964'; // Green for high stats
+  if (value >= 70) return '#FFCC00';   // Yellow for medium-high stats
+  if (value >= 40) return '#FF9500';   // Orange for medium stats
+  return '#FF3B30';                    // Red for low stats
 };
 
 const createStyles = (
@@ -1159,61 +1208,121 @@ const createStyles = (
   width: number,
   height: number,
   isSmallDevice: boolean,
-  isTablet: boolean
+  isTablet: boolean,
+  primaryColor: string,
+  lightColor: string
 ) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#F8F8F8',
   },
   scrollView: {
     flex: 1,
+  },
+  headerBackground: {
+    backgroundColor: primaryColor,
+    borderBottomLeftRadius: moderateScale(30),
+    borderBottomRightRadius: moderateScale(30),
+    paddingBottom: verticalScale(30),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(4),
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: moderateScale(8),
+    elevation: 8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: moderateScale(16),
-    paddingTop: verticalScale(16),
+    paddingTop: verticalScale(12),
     paddingBottom: verticalScale(16),
   },
   backButton: {
     padding: moderateScale(8),
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: moderateScale(20),
   },
   favoriteButton: {
     padding: moderateScale(8),
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: moderateScale(20),
   },
   imageSection: {
     alignItems: 'center',
     padding: moderateScale(20),
   },
+  imageContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: moderateScale(100),
+    padding: moderateScale(20),
+    marginBottom: verticalScale(16),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(4),
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: moderateScale(6),
+    elevation: 6,
+  },
   image: {
-    width: isTablet ? width * 0.4 : width * 0.5,
-    height: isTablet ? width * 0.4 : width * 0.5,
-    maxWidth: 300,
-    maxHeight: 300,
+    width: isTablet ? width * 0.3 : width * 0.4,
+    height: isTablet ? width * 0.3 : width * 0.4,
+    maxWidth: 250,
+    maxHeight: 250,
   },
   name: {
-    fontSize: isTablet ? moderateScale(36) : 
-              isSmallDevice ? moderateScale(24) : moderateScale(32),
+    fontSize: isTablet ? moderateScale(32) : 
+              isSmallDevice ? moderateScale(22) : moderateScale(28),
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: verticalScale(16),
+    color: '#FFFFFF',
+    marginTop: verticalScale(8),
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
   id: {
-    fontSize: isTablet ? moderateScale(22) : 
-              isSmallDevice ? moderateScale(16) : moderateScale(18),
-    color: '#666',
+    fontSize: isTablet ? moderateScale(20) : 
+              isSmallDevice ? moderateScale(14) : moderateScale(18),
+    color: '#FFFFFF',
     marginTop: verticalScale(4),
+    fontWeight: '600',
+    opacity: 0.9,
   },
   detailsSection: {
     padding: moderateScale(20),
+    marginTop: verticalScale(-20),
+  },
+  typesSection: {
+    backgroundColor: '#FFFFFF',
+    padding: moderateScale(20),
+    borderRadius: moderateScale(20),
+    marginBottom: moderateScale(16),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 4,
+  },
+  sectionTitle: {
+    fontSize: isTablet ? moderateScale(20) : 
+              isSmallDevice ? moderateScale(16) : moderateScale(18),
+    fontWeight: 'bold',
+    color: '#1D2C5E',
+    marginBottom: verticalScale(12),
   },
   types: {
     flexDirection: 'row',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    marginBottom: verticalScale(24),
   },
   type: {
     paddingHorizontal: moderateScale(16),
@@ -1221,97 +1330,163 @@ const createStyles = (
     borderRadius: moderateScale(20),
     margin: moderateScale(4),
     minWidth: isSmallDevice ? moderateScale(70) : moderateScale(80),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: moderateScale(3),
+    elevation: 3,
   },
   typeText: {
     fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
     fontWeight: 'bold',
-    color: 'white',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
-  sectionTitle: {
-    fontSize: isTablet ? moderateScale(24) : 
-              isSmallDevice ? moderateScale(18) : moderateScale(20),
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: verticalScale(16),
-  },
-  stats: {
-    marginBottom: verticalScale(24),
-  },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: verticalScale(12),
-  },
-  statName: {
-    width: isTablet ? moderateScale(120) : 
-           isSmallDevice ? moderateScale(80) : moderateScale(100),
-    fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
-    color: '#666',
-  },
-  statBarContainer: {
-    flex: 1,
-    height: moderateScale(8),
-    backgroundColor: '#f0f0f0',
-    borderRadius: moderateScale(4),
-    marginHorizontal: moderateScale(12),
-  },
-  statBar: {
-    height: '100%',
-    backgroundColor: '#4CD964',
-    borderRadius: moderateScale(4),
-  },
-  statValue: {
-    width: isTablet ? moderateScale(40) : moderateScale(30),
-    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'right',
+  physicalSection: {
+    backgroundColor: '#FFFFFF',
+    padding: moderateScale(20),
+    borderRadius: moderateScale(20),
+    marginBottom: moderateScale(16),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 4,
   },
   physical: {
     flexDirection: isSmallDevice ? 'column' : 'row',
     justifyContent: 'space-around',
-    marginBottom: verticalScale(24),
-    padding: moderateScale(16),
-    backgroundColor: '#f9f9f9',
-    borderRadius: moderateScale(12),
   },
   physicalItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: isSmallDevice ? verticalScale(12) : 0,
+    marginBottom: isSmallDevice ? verticalScale(16) : 0,
+    padding: moderateScale(12),
+    backgroundColor: '#F8F8F8',
+    borderRadius: moderateScale(12),
+    minWidth: isSmallDevice ? '100%' : '45%',
+  },
+  physicalIcon: {
+    backgroundColor: '#FFCB05',
+    padding: moderateScale(8),
+    borderRadius: moderateScale(10),
+    marginRight: moderateScale(12),
+  },
+  physicalInfo: {
+    flex: 1,
   },
   physicalLabel: {
     fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
     color: '#666',
     marginBottom: verticalScale(4),
+    fontWeight: '500',
   },
   physicalValue: {
     fontSize: isSmallDevice ? moderateScale(14) : moderateScale(16),
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1D2C5E',
   },
-  abilities: {
-    marginBottom: verticalScale(24),
+  statsSection: {
+    backgroundColor: '#FFFFFF',
+    padding: moderateScale(20),
+    borderRadius: moderateScale(20),
+    marginBottom: moderateScale(16),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 4,
+  },
+  stats: {
+    // Stats container
+  },
+  statRow: {
+    marginBottom: verticalScale(12),
+  },
+  statInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: verticalScale(6),
+  },
+  statName: {
+    fontSize: isSmallDevice ? moderateScale(11) : moderateScale(13),
+    color: '#666',
+    fontWeight: '500',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: isSmallDevice ? moderateScale(12) : moderateScale(14),
+    fontWeight: 'bold',
+    color: '#1D2C5E',
+    width: moderateScale(30),
+    textAlign: 'right',
+  },
+  statBarContainer: {
+    height: moderateScale(8),
+    backgroundColor: '#F0F0F0',
+    borderRadius: moderateScale(4),
+    overflow: 'hidden',
+  },
+  statBar: {
+    height: '100%',
+    borderRadius: moderateScale(4),
+  },
+  abilitiesSection: {
+    backgroundColor: '#FFFFFF',
+    padding: moderateScale(20),
+    borderRadius: moderateScale(20),
+    marginBottom: moderateScale(16),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 4,
   },
   abilitiesList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   ability: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: moderateScale(12),
-    paddingVertical: moderateScale(6),
-    borderRadius: moderateScale(16),
-    marginRight: moderateScale(8),
-    marginBottom: moderateScale(8),
-    minWidth: isSmallDevice ? moderateScale(80) : moderateScale(90),
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: moderateScale(16),
+    paddingVertical: moderateScale(10),
+    borderRadius: moderateScale(20),
+    margin: moderateScale(4),
+    minWidth: isSmallDevice ? moderateScale(100) : moderateScale(120),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(1),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(2),
+    elevation: 2,
   },
   abilityText: {
     fontSize: isSmallDevice ? moderateScale(10) : moderateScale(12),
-    color: '#333',
-    textAlign: 'center',
+    color: '#1D2C5E',
+    fontWeight: '500',
+    marginLeft: moderateScale(8),
   },
 });
+
+export default PokemonDetailScreen;
 
 --- FILE: ./screens/PokemonListByTypeScreen.tsx ---
 
@@ -1807,6 +1982,208 @@ const createStyles = (
 
 export default PokemonListScreen;
 
+--- FILE: ./screens/ProfileScreen.tsx ---
+
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { FontAwesome6 } from '@react-native-vector-icons/fontawesome6';
+import { PokemonNavbar } from '../components/PokemonNavbar';
+import { useResponsive } from '../hooks/useResponsive';
+
+export const ProfileScreen: React.FC = () => {
+  const { moderateScale } = useResponsive();
+  
+  const styles = createStyles(moderateScale);
+
+  return (
+    <View style={styles.container}>
+      <PokemonNavbar />
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <FontAwesome6 name="user" size={moderateScale(80)} color="#DC0A2D" />
+          <Text style={styles.title}>Pokédex App</Text>
+          <Text style={styles.subtitle}>React Native Challenge</Text>
+        </View>
+        
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>App Information</Text>
+          <View style={styles.infoItem}>
+            <FontAwesome6 name="code" size={moderateScale(20)} color="#1D2C5E" iconStyle='solid'/>
+            <Text style={styles.infoText}>Built with React Native & TypeScript</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <FontAwesome6 name="database" size={moderateScale(20)} color="#1D2C5E" iconStyle='solid'/>
+            <Text style={styles.infoText}>Data from PokeAPI</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <FontAwesome6 name="heart" size={moderateScale(20)} color="#1D2C5E" iconStyle='solid'/>
+            <Text style={styles.infoText}>Favorites with AsyncStorage</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <FontAwesome6 name="mobile" size={moderateScale(20)} color="#1D2C5E" iconStyle='solid'/>
+            <Text style={styles.infoText}>Fully Responsive Design</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Features</Text>
+          <View style={styles.featureItem}>
+            <FontAwesome6 name="check" size={moderateScale(16)} color="#4CD964" iconStyle='solid'/>
+            <Text style={styles.featureText}>Browse Pokémon by Type</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <FontAwesome6 name="check" size={moderateScale(16)} color="#4CD964" iconStyle='solid'/>
+            <Text style={styles.featureText}>Search Pokémon</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <FontAwesome6 name="check" size={moderateScale(16)} color="#4CD964" iconStyle='solid'/>
+            <Text style={styles.featureText}>Favorite Pokémon</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <FontAwesome6 name="check" size={moderateScale(16)} color="#4CD964" iconStyle='solid'/>
+            <Text style={styles.featureText}>Detailed Pokémon Info</Text>
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Made with ❤️ using React Native</Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
+
+const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
+  StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F8F8',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: moderateScale(20),
+  },
+  header: {
+    alignItems: 'center',
+    padding: moderateScale(32),
+    backgroundColor: '#FFFFFF',
+    marginBottom: moderateScale(16),
+    shadowColor: '#1D2C5E',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 3,
+  },
+  title: {
+    fontSize: moderateScale(24),
+    fontWeight: 'bold',
+    color: '#1D2C5E',
+    marginTop: moderateScale(16),
+  },
+  subtitle: {
+    fontSize: moderateScale(16),
+    color: '#666',
+    marginTop: moderateScale(4),
+  },
+  section: {
+    backgroundColor: '#FFFFFF',
+    padding: moderateScale(16),
+    marginHorizontal: moderateScale(16),
+    marginBottom: moderateScale(16),
+    borderRadius: moderateScale(12),
+    shadowColor: '#1D2C5E',
+    shadowOffset: {
+      width: 0,
+      height: moderateScale(2),
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(4),
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: moderateScale(18),
+    fontWeight: 'bold',
+    color: '#DC0A2D',
+    marginBottom: moderateScale(12),
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: moderateScale(8),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  infoText: {
+    marginLeft: moderateScale(12),
+    fontSize: moderateScale(16),
+    color: '#333',
+    flex: 1,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: moderateScale(6),
+  },
+  featureText: {
+    marginLeft: moderateScale(12),
+    fontSize: moderateScale(14),
+    color: '#333',
+  },
+  footer: {
+    alignItems: 'center',
+    padding: moderateScale(20),
+  },
+  footerText: {
+    fontSize: moderateScale(14),
+    color: '#666',
+    fontStyle: 'italic',
+  },
+});
+
+export default ProfileScreen;
+
+--- FILE: ./navigation/types.ts ---
+
+import { Pokemon } from '../types/pokemon';
+
+export type RootStackParamList = {
+  MainTabs: undefined;
+  PokemonDetail: { pokemon: Pokemon };
+};
+
+export type MainTabParamList = {
+  Home: undefined;
+  Favorites: undefined;
+  Profile: undefined;
+};
+
+export type HomeTopTabParamList = {
+  All: undefined;
+  Fire: undefined;
+  Water: undefined;
+  Grass: undefined;
+  Electric: undefined;
+  Ice: undefined;
+  Fighting: undefined;
+  Poison: undefined;
+  Ground: undefined;
+  Flying: undefined;
+  Psychic: undefined;
+  Bug: undefined;
+  Rock: undefined;
+  Ghost: undefined;
+  Dragon: undefined;
+  Dark: undefined;
+  Steel: undefined;
+  Fairy: undefined;
+};
+
 --- FILE: ./navigation/AppNavigator.tsx ---
 
 import React from 'react';
@@ -1898,42 +2275,6 @@ export const AppNavigator: React.FC = () => {
   );
 };
 
---- FILE: ./navigation/types.ts ---
-
-import { Pokemon } from '../types/pokemon';
-
-export type RootStackParamList = {
-  MainTabs: undefined;
-  PokemonDetail: { pokemon: Pokemon };
-};
-
-export type MainTabParamList = {
-  Home: undefined;
-  Favorites: undefined;
-  Profile: undefined;
-};
-
-export type HomeTopTabParamList = {
-  All: undefined;
-  Fire: undefined;
-  Water: undefined;
-  Grass: undefined;
-  Electric: undefined;
-  Ice: undefined;
-  Fighting: undefined;
-  Poison: undefined;
-  Ground: undefined;
-  Flying: undefined;
-  Psychic: undefined;
-  Bug: undefined;
-  Rock: undefined;
-  Ghost: undefined;
-  Dragon: undefined;
-  Dark: undefined;
-  Steel: undefined;
-  Fairy: undefined;
-};
-
 --- FILE: ./navigation/HomeTopTabsNavigator.tsx ---
 
 import React from 'react';
@@ -1942,30 +2283,30 @@ import { HomeTopTabParamList } from './types';
 import { PokemonListByTypeScreen } from '../screens/PokemonListByTypeScreen';
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useResponsive } from '../hooks/useResponsive';
-import { PokemonNavbar } from '../components/PokemonNavbar'; // IMPORT BARU
+import { PokemonNavbar } from '../components/PokemonNavbar';
 import { View, StyleSheet } from 'react-native';
 
 const TopTab = createMaterialTopTabNavigator<HomeTopTabParamList>();
 
 const pokemonTypes = [
-  { name: 'All', icon: 'list' as const },
-  { name: 'Fire', icon: 'fire' as const },
-  { name: 'Water', icon: 'droplet' as const },
-  { name: 'Grass', icon: 'leaf' as const },
-  { name: 'Electric', icon: 'bolt' as const },
-  { name: 'Ice', icon: 'snowflake' as const },
-  { name: 'Fighting', icon: 'hand-fist' as const },
-  { name: 'Poison', icon: 'skull' as const },
-  { name: 'Ground', icon: 'mountain' as const },
-  { name: 'Flying', icon: 'dove' as const },
-  { name: 'Psychic', icon: 'brain' as const },
-  { name: 'Bug', icon: 'bug' as const },
-  { name: 'Rock', icon: 'mountain' as const },
-  { name: 'Ghost', icon: 'ghost' as const },
-  { name: 'Dragon', icon: 'dragon' as const },
-  { name: 'Dark', icon: 'moon' as const },
-  { name: 'Steel', icon: 'shield' as const },
-  { name: 'Fairy', icon: 'wand-magic-sparkles' as const },
+  { name: 'All', icon: 'list', color: '#FFCB05' },
+  { name: 'Fire', icon: 'fire', color: '#EE8130' },
+  { name: 'Water', icon: 'droplet', color: '#6390F0' },
+  { name: 'Grass', icon: 'leaf', color: '#7AC74C' },
+  { name: 'Electric', icon: 'bolt', color: '#F7D02C' },
+  { name: 'Ice', icon: 'snowflake', color: '#96D9D6' },
+  { name: 'Fighting', icon: 'hand-fist', color: '#C22E28' },
+  { name: 'Poison', icon: 'skull', color: '#A33EA1' },
+  { name: 'Ground', icon: 'mountain', color: '#E2BF65' },
+  { name: 'Flying', icon: 'dove', color: '#A98FF3' },
+  { name: 'Psychic', icon: 'brain', color: '#F95587' },
+  { name: 'Bug', icon: 'bug', color: '#A6B91A' },
+  { name: 'Rock', icon: 'mountain', color: '#B6A136' },
+  { name: 'Ghost', icon: 'ghost', color: '#735797' },
+  { name: 'Dragon', icon: 'dragon', color: '#6F35FC' },
+  { name: 'Dark', icon: 'moon', color: '#705746' },
+  { name: 'Steel', icon: 'shield', color: '#B7B7CE' },
+  { name: 'Fairy', icon: 'wand-magic-sparkles', color: '#D685AD' },
 ];
 
 export const HomeTopTabsNavigator: React.FC = () => {
@@ -1975,7 +2316,7 @@ export const HomeTopTabsNavigator: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <PokemonNavbar /> {/* NAVBAR DI ATAS TOP TABS */}
+      <PokemonNavbar />
       <TopTab.Navigator
         screenOptions={{
           tabBarScrollEnabled: true,
@@ -1995,11 +2336,11 @@ export const HomeTopTabsNavigator: React.FC = () => {
             elevation: 0,
             shadowOpacity: 0,
           },
-          tabBarIndicatorStyle: { 
-            backgroundColor: '#FFCB05',
+          tabBarIndicatorStyle: ({ route }) => ({
+            backgroundColor: getTypeColor(route.name),
             height: scale(4),
             borderRadius: scale(2),
-          },
+          }),
           tabBarIconStyle: {
             marginBottom: 0,
           },
@@ -2013,20 +2354,29 @@ export const HomeTopTabsNavigator: React.FC = () => {
             initialParams={{ type: type.name === 'All' ? null : type.name.toLowerCase() }}
             options={{
               title: type.name,
-              tabBarIcon: ({ color }) => (
-                <FontAwesome6 
-                  name={type.icon} 
-                  size={isSmallDevice ? scale(14) : scale(16)} 
-                  color='#FFCB05'
-                  iconStyle='solid'
-                />
-              ),
+              tabBarIcon: ({ focused }) => {
+                const typeColor = getTypeColor(type.name);
+                return (
+                  <FontAwesome6 
+                    name={type.icon} 
+                    size={isSmallDevice ? scale(14) : scale(16)} 
+                    color={focused ? typeColor : '#CCCCCC'}
+                    iconStyle='solid'
+                  />
+                );
+              },
             }}
           />
         ))}
       </TopTab.Navigator>
     </View>
   );
+};
+
+// Helper function to get type color
+const getTypeColor = (typeName: string): string => {
+  const type = pokemonTypes.find(t => t.name === typeName);
+  return type?.color || '#FFCB05';
 };
 
 const createStyles = (moderateScale: (size: number, factor?: number) => number) => 
